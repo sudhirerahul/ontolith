@@ -150,7 +150,6 @@ class BatchRunner:
         """Return (baseline_agent, candidate_agent) based on mode."""
         if self.use_foundry:
             from ..agents.foundry_agent import FoundryAgentAdapter
-            from ..agents.adapters import BaselineAgentAdapter
             # Baseline: strong-prompt OpenRouter LLM (or mock if no key)
             baseline = BaselineAgentAdapter()
             # Candidate: your actual Azure Foundry deployment
