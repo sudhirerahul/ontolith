@@ -97,15 +97,19 @@ def inject_asr_misrecognition(text: str) -> str:
 
 
 def inject_number_confusion(text: str) -> str:
-    """Convert numeric digits to written form or vice versa."""
+    """Convert numeric digits to written form, or written numbers to digits."""
     number_map = {
         "1": "one", "2": "two", "3": "three", "4": "four", "5": "five",
         "6": "six", "7": "seven", "8": "eight", "9": "nine", "0": "zero",
     }
-    if random.random() < 0.5:
+    if any(ch.isdigit() for ch in text):
         # digits → words
         for digit, word in number_map.items():
             text = text.replace(digit, word + " ")
+    else:
+        # words → digits
+        word_map = {word: digit for digit, word in number_map.items()}
+        text = " ".join(word_map.get(w.lower(), w) for w in text.split())
     return text.strip()
 
 

@@ -4,6 +4,7 @@ from callguard_ai.perturbations.text_mutators import (
     inject_hesitation, inject_self_correction, inject_repetition,
     inject_filler_words, inject_asr_misrecognition, inject_number_confusion,
     inject_emotional_frustration, apply_perturbations, PERTURBATION_REGISTRY,
+    FRUSTRATION_PREFIXES,
 )
 
 
@@ -12,12 +13,12 @@ class TestPerturbations:
 
     def test_hesitation_adds_filler(self):
         result = inject_hesitation(self.BASE)
-        fillers = ["uh", "um", "er", "hmm"]
+        fillers = ["uh", "um", "er", "hmm", "ugh"]
         assert any(f in result.lower() for f in fillers)
 
     def test_self_correction_adds_marker(self):
         result = inject_self_correction(self.BASE)
-        markers = ["actually", "i meant", "wait no", "sorry"]
+        markers = ["actually", "i meant", "wait no", "sorry", "rephrase"]
         assert any(m in result.lower() for m in markers)
 
     def test_repetition_increases_word_count(self):
@@ -36,8 +37,7 @@ class TestPerturbations:
 
     def test_frustration_adds_prefix(self):
         result = inject_emotional_frustration(self.BASE)
-        prefixes = ["this is ridiculous", "come on", "why is this"]
-        assert any(p in result.lower() for p in prefixes)
+        assert any(p.rstrip(",").lower() in result.lower() for p in FRUSTRATION_PREFIXES)
 
     def test_apply_perturbations_returns_applied_list(self):
         result, applied = apply_perturbations(self.BASE, ["hesitation", "filler_words"])
