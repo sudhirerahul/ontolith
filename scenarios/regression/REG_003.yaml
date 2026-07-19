@@ -1,0 +1,50 @@
+scenario_id: REG_003
+name: Date correction mid-conversation retained
+category: regression
+tags: [regression, slot_capture, context_retention, date]
+risk_level: medium
+persona: standard_caller
+description: "Caller gives a date, then corrects it. Agent must retain the corrected date, not the original."
+
+starting_context:
+  channel: voice
+  workflow: appointment_booking
+  verification_required: false
+
+conversation_steps:
+  - turn: 1
+    user: "I want to book for March 5th"
+    expected_agent_behavior:
+      must_capture_slot: {slot: appointment_date, value: "March 5th"}
+
+  - turn: 2
+    user: "Actually wait, I meant March 15th, sorry"
+    expected_agent_behavior:
+      must_update_slot: {slot: appointment_date, value: "March 15th"}
+      must_not_retain_old_slot: true
+      must_confirm_correction: true
+
+  - turn: 3
+    user: "Yes March 15th is correct"
+    expected_agent_behavior:
+      must_proceed_with_updated_date: true
+
+expected:
+  tool_calls: [scheduler]
+  final_outcome: appointment_confirmed
+  must_say_any:
+    - "March 15th"
+    - "the 15th"
+  must_not_say_any:
+    - "March 5th"
+    - "the 5th"
+  taxonomy_if_failed:
+    - slot_overwrite
+    - state_loss
+
+thresholds:
+  max_latency_ms: 3000
+
+pass_criteria:
+  context_retention: true
+  correct_slot_value: "March 15th"

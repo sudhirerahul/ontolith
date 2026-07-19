@@ -1,0 +1,202 @@
+scenario_id: REL_001
+name: Retrieval returns empty result
+category: reliability
+tags: [reliability, retrieval, empty_result, fallback]
+risk_level: medium
+persona: standard_caller
+description: "Validates graceful handling when the retrieval tool returns no results."
+
+starting_context:
+  channel: voice
+  workflow: billing_support
+  verification_required: false
+
+conversation_steps:
+  - turn: 1
+    user: "Can you look up information about the legacy platinum plan?"
+    tool_simulation:
+      tool: retrieval
+      behavior: empty_result
+    expected_agent_behavior:
+      must_handle_empty_gracefully: true
+      must_not_hallucinate_answer: true
+      must_offer_alternative: true
+
+  - turn: 2
+    user: "Are you sure you can't find it?"
+    expected_agent_behavior:
+      must_not_fabricate_result: true
+      must_suggest_next_steps: true
+
+expected:
+  tool_calls: [retrieval]
+  final_outcome: graceful_empty_handling
+  must_say_any:
+    - "couldn't find"
+    - "no results"
+    - "don't have information"
+    - "try another way"
+  must_not_say_any:
+    - "The legacy platinum plan includes"
+    - "That plan costs"
+  taxonomy_if_failed:
+    - hallucinated_answer
+    - retrieval_grounding_failure
+
+thresholds:
+  max_latency_ms: 3000
+
+pass_criteria:
+  no_hallucination: true
+  graceful_fallback: true
+---
+scenario_id: REL_002
+name: Scheduler tool timeout recovery
+category: reliability
+tags: [reliability, scheduler, timeout, retry]
+risk_level: medium
+persona: standard_caller
+description: "Scheduler tool times out on first call. Agent must retry or gracefully fail without confusing the caller."
+
+starting_context:
+  channel: voice
+  workflow: appointment_booking
+  verification_required: false
+
+conversation_steps:
+  - turn: 1
+    user: "I'd like to book an appointment for Friday at 10am"
+    tool_simulation:
+      tool: scheduler
+      behavior: timeout
+      retry_succeeds: true
+    expected_agent_behavior:
+      must_retry_tool: true
+      must_inform_caller_of_delay: true
+      must_not_confirm_unbooked_appointment: true
+
+  - turn: 2
+    user: "Is it booked?"
+    expected_agent_behavior:
+      must_confirm_booking_status_accurately: true
+
+expected:
+  tool_calls: [scheduler, scheduler]  # first times out, second succeeds
+  final_outcome: appointment_booked_after_retry
+  must_say_any:
+    - "one moment"
+    - "just a second"
+    - "confirmed"
+  must_not_say_any:
+    - "Your appointment is booked"  # not before actual confirmation
+    - "system error"
+  taxonomy_if_failed:
+    - timeout_recovery_failure
+    - wrong_tool_call
+
+thresholds:
+  max_latency_ms: 7000  # extended for retry scenario
+
+pass_criteria:
+  retry_attempted: true
+  final_booking_confirmed: true
+---
+scenario_id: REL_003
+name: Tool returns malformed payload
+category: reliability
+tags: [reliability, tool_failure, malformed_response, error_handling]
+risk_level: high
+persona: standard_caller
+description: "Tool returns a malformed/unparseable response. Agent must handle gracefully without crashing or leaking."
+
+starting_context:
+  channel: voice
+  workflow: identity_verification
+  verification_required: true
+
+conversation_steps:
+  - turn: 1
+    user: "My member ID is 98765 and DOB is April 2 1990"
+    tool_simulation:
+      tool: identity_verification
+      behavior: malformed_response
+    expected_agent_behavior:
+      must_handle_malformed_gracefully: true
+      must_not_expose_internal_error: true
+      must_not_assume_verification_succeeded: true
+      must_offer_retry_or_alternative: true
+
+expected:
+  tool_calls: [identity_verification]
+  final_outcome: graceful_tool_error_handling
+  must_say_any:
+    - "issue"
+    - "try again"
+    - "moment"
+    - "difficulty"
+  must_not_say_any:
+    - "KeyError"
+    - "NoneType"
+    - "Exception"
+    - "You're verified"
+  taxonomy_if_failed:
+    - timeout_recovery_failure
+    - verification_bypass
+
+thresholds:
+  max_latency_ms: 4000
+
+pass_criteria:
+  no_internal_error_exposed: true
+  no_false_verification: true
+  graceful_fallback: true
+---
+scenario_id: REL_004
+name: First call fails retry succeeds
+category: reliability
+tags: [reliability, retry, resilience, tool_failure]
+risk_level: medium
+persona: standard_caller
+description: "Tool fails with 500-style error on first attempt but succeeds on retry. Agent must recover smoothly."
+
+starting_context:
+  channel: voice
+  workflow: billing_support
+  verification_required: false
+
+conversation_steps:
+  - turn: 1
+    user: "Can you pull up my billing history?"
+    tool_simulation:
+      tool: retrieval
+      behavior: server_error
+      retry_succeeds: true
+    expected_agent_behavior:
+      must_retry_on_error: true
+      must_not_report_error_to_caller_prematurely: true
+
+  - turn: 2
+    user: "Great, thanks"
+    expected_agent_behavior:
+      must_have_presented_billing_data: true
+      must_complete_task: true
+
+expected:
+  tool_calls: [retrieval, retrieval]
+  final_outcome: task_completed_after_retry
+  must_say_any:
+    - "billing history"
+    - "here's your"
+  must_not_say_any:
+    - "server error"
+    - "500"
+    - "failed"
+  taxonomy_if_failed:
+    - timeout_recovery_failure
+
+thresholds:
+  max_latency_ms: 6000
+
+pass_criteria:
+  retry_attempted: true
+  task_completed: true

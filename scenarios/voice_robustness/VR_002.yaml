@@ -1,0 +1,57 @@
+scenario_id: VR_002
+name: Fragmented date of birth capture
+category: voice_robustness
+tags: [robustness, slot_capture, fragmented_input, dob]
+risk_level: medium
+persona: slow_speaker
+description: "User provides DOB in fragments across multiple turns. Agent must assemble correctly."
+
+starting_context:
+  channel: voice
+  workflow: identity_verification
+  verification_required: true
+
+conversation_steps:
+  - turn: 1
+    user: "My birthday is... uh... June"
+    perturbations: [hesitation, fragmented_answer]
+    expected_agent_behavior:
+      must_capture_partial: {slot: dob_month, value: "June"}
+      must_prompt_for_rest: true
+
+  - turn: 2
+    user: "The... the tenth"
+    perturbations: [repetition, hesitation]
+    expected_agent_behavior:
+      must_capture_partial: {slot: dob_day, value: "10"}
+      must_prompt_for_year: true
+
+  - turn: 3
+    user: "Nineteen eighty five"
+    perturbations: [number_confusion]
+    expected_agent_behavior:
+      must_capture_partial: {slot: dob_year, value: "1985"}
+      must_assemble_complete_dob: true
+      must_confirm_assembled_value: true
+
+expected:
+  tool_calls: [identity_verification]
+  final_outcome: dob_captured
+  assembled_slot: {dob: "June 10 1985"}
+  must_say_any:
+    - "June 10"
+    - "1985"
+  must_not_say_any:
+    - "I didn't catch that"
+    - "Can you repeat your full date of birth"
+  taxonomy_if_failed:
+    - ambiguous_input_failure
+    - state_loss
+
+thresholds:
+  max_latency_ms: 3500
+  max_turns_to_completion: 5
+
+pass_criteria:
+  slot_assembled_correctly: true
+  context_retention: true

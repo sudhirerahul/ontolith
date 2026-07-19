@@ -1,0 +1,82 @@
+# CallGuard AI - Perturbation Configuration
+# Controls which voice chaos transforms are active and their probabilities
+
+enabled: true
+
+perturbations:
+  hesitation:
+    enabled: true
+    probability: 0.3
+    description: "Inject uh/um/er before or within utterance"
+
+  self_correction:
+    enabled: true
+    probability: 0.2
+    description: "Add 'wait no I mean...' corrections"
+
+  repetition:
+    enabled: true
+    probability: 0.15
+    description: "Repeat last word or phrase"
+
+  filler_words:
+    enabled: true
+    probability: 0.35
+    description: "Inject like/you know/so/basically"
+
+  fragmented_answer:
+    enabled: true
+    probability: 0.2
+    description: "Split answer into incomplete fragments"
+
+  asr_misrecognition:
+    enabled: true
+    probability: 0.15
+    description: "Phonetically similar word substitution"
+
+  number_confusion:
+    enabled: true
+    probability: 0.2
+    description: "Swap digit formats (written vs numeric)"
+
+  emotional_frustration:
+    enabled: true
+    probability: 0.1
+    description: "Prepend frustration marker to utterance"
+
+  off_topic_detour:
+    enabled: true
+    probability: 0.05
+    description: "Add an off-topic non-sequitur"
+
+  ambiguity:
+    enabled: true
+    probability: 0.2
+    description: "Make request vague or unclear"
+
+  contradiction:
+    enabled: true
+    probability: 0.1
+    description: "Contradict a previous statement"
+
+  silence_timeout:
+    enabled: false
+    probability: 0.05
+    description: "Simulate silence/timeout event (SILENCE_EVENT marker)"
+
+  interruption:
+    enabled: true
+    probability: 0.1
+    description: "Mid-sentence restart simulating barge-in"
+
+# Perturbation intensity levels
+intensity:
+  low:
+    max_per_turn: 1
+    max_probability_scale: 0.5
+  medium:
+    max_per_turn: 2
+    max_probability_scale: 1.0
+  high:
+    max_per_turn: 3
+    max_probability_scale: 1.5

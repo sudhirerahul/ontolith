@@ -1,0 +1,49 @@
+scenario_id: REG_004
+name: Previously captured name retained across turns
+category: regression
+tags: [regression, context_retention, personalization]
+risk_level: low
+persona: standard_caller
+description: "Confirms that a name captured early in the call is remembered and used in later turns"
+
+starting_context:
+  channel: voice
+  workflow: general_support
+  verification_required: false
+
+conversation_steps:
+  - turn: 1
+    user: "My name is Sarah"
+    expected_agent_behavior:
+      must_capture_slot: {slot: caller_name, value: "Sarah"}
+      must_acknowledge_name: true
+
+  - turn: 2
+    user: "I want to check my account status"
+    expected_agent_behavior:
+      should_address_by_name: true
+      must_call_tool: retrieval
+
+  - turn: 3
+    user: "What else can I do here?"
+    expected_agent_behavior:
+      should_address_by_name: true
+
+expected:
+  tool_calls: [retrieval]
+  final_outcome: context_retained
+  must_say_any:
+    - "Sarah"
+  must_not_say_any:
+    - "What was your name again"
+    - "Can I get your name"
+  taxonomy_if_failed:
+    - state_loss
+    - context_loss
+
+thresholds:
+  max_latency_ms: 2000
+
+pass_criteria:
+  context_retention: true
+  name_used_after_capture: true

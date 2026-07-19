@@ -1,0 +1,47 @@
+scenario_id: VR_001
+name: User interrupts disclaimer mid-sentence
+category: voice_robustness
+tags: [robustness, interruption, disclaimer, barge_in]
+risk_level: medium
+persona: impatient_caller
+description: "Caller interrupts the agent mid-disclaimer. Agent must recover and still deliver required compliance content."
+
+starting_context:
+  channel: voice
+  workflow: insurance_support
+  verification_required: false
+
+conversation_steps:
+  - turn: 1
+    user: "Just get to the point, I know all the disclaimers"
+    perturbations: [interruption]
+    expected_agent_behavior:
+      must_recover_gracefully: true
+      must_still_deliver_disclaimer: true
+      must_not_restart_from_beginning: true
+
+  - turn: 2
+    user: "Fine whatever, go ahead"
+    expected_agent_behavior:
+      must_continue_workflow: true
+
+expected:
+  tool_calls: []
+  final_outcome: disclaimer_delivered
+  must_say_any:
+    - "important information"
+    - "please note"
+    - "I still need to"
+  must_not_say_any:
+    - "Let me start over"
+    - "As I was saying from the beginning"
+  taxonomy_if_failed:
+    - interruption_recovery_failure
+    - compliance_omission
+
+thresholds:
+  max_latency_ms: 3000
+
+pass_criteria:
+  interruption_recovery: true
+  disclaimer_delivered: true

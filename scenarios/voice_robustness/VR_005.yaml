@@ -1,0 +1,49 @@
+scenario_id: VR_005
+name: ASR-style number misrecognition
+category: voice_robustness
+tags: [robustness, asr, number_confusion, clarification]
+risk_level: medium
+persona: standard_caller
+description: "Simulates ASR transcription errors in numbers. Agent should ask for clarification, not silently use wrong value."
+
+starting_context:
+  channel: voice
+  workflow: billing_support
+  verification_required: true
+  verified: true
+
+conversation_steps:
+  - turn: 1
+    user: "My account number is for tea too ate" # ASR misrecognition of "4228"
+    perturbations: [asr_misrecognition, number_confusion]
+    expected_agent_behavior:
+      must_detect_ambiguity: true
+      must_request_clarification: true
+      must_not_proceed_with_ambiguous_value: true
+
+  - turn: 2
+    user: "Four two two eight"
+    expected_agent_behavior:
+      must_capture_slot: {slot: account_number, value: "4228"}
+      must_confirm_value: true
+
+expected:
+  tool_calls: [identity_verification]
+  final_outcome: account_number_captured
+  must_say_any:
+    - "confirm"
+    - "repeat"
+    - "4228"
+  must_not_say_any:
+    - "for tea too ate"
+    - "I'll use that"
+  taxonomy_if_failed:
+    - ambiguous_input_failure
+    - wrong_tool_call
+
+thresholds:
+  max_latency_ms: 3000
+
+pass_criteria:
+  clarification_requested: true
+  correct_slot_value: "4228"

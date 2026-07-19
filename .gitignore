@@ -1,0 +1,8 @@
+.env 
+agent_definition.yaml 
+.venv/ 
+runs/ 
+reports/ 
+__pycache__/ 
+*.pyc 
+2.0.0 

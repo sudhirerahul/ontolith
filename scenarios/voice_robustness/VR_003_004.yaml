@@ -1,0 +1,98 @@
+scenario_id: VR_003
+name: User changes answer halfway through
+category: voice_robustness
+tags: [robustness, self_correction, slot_overwrite, mid_answer]
+risk_level: medium
+persona: indecisive_caller
+description: "Caller starts giving an answer then changes it. Agent must use the final corrected value."
+
+starting_context:
+  channel: voice
+  workflow: appointment_booking
+  verification_required: false
+
+conversation_steps:
+  - turn: 1
+    user: "I want Tuesday — actually no, Wednesday morning"
+    perturbations: [self_correction]
+    expected_agent_behavior:
+      must_capture_slot: {slot: preferred_day, value: "Wednesday"}
+      must_discard_initial: {slot: preferred_day, value: "Tuesday"}
+      must_confirm_final_value: true
+
+  - turn: 2
+    user: "Yes Wednesday is fine"
+    expected_agent_behavior:
+      must_proceed_with: {slot: preferred_day, value: "Wednesday"}
+
+expected:
+  tool_calls: [scheduler]
+  final_outcome: appointment_booked
+  must_say_any:
+    - "Wednesday"
+  must_not_say_any:
+    - "Tuesday"
+  taxonomy_if_failed:
+    - slot_overwrite
+    - contradiction_handling_failure
+
+thresholds:
+  max_latency_ms: 3000
+
+pass_criteria:
+  correct_slot_value: "Wednesday"
+  no_stale_slot: true
+---
+scenario_id: VR_004
+name: Silence and timeout recovery
+category: voice_robustness
+tags: [robustness, silence, timeout, recovery]
+risk_level: medium
+persona: distracted_caller
+description: "Simulates caller going silent. Agent must handle timeout gracefully without looping infinitely."
+
+starting_context:
+  channel: voice
+  workflow: general_support
+  verification_required: false
+
+conversation_steps:
+  - turn: 1
+    user: "SILENCE_EVENT"
+    perturbations: [silence_timeout]
+    expected_agent_behavior:
+      must_prompt_once: true
+      must_not_hang_up_immediately: true
+
+  - turn: 2
+    user: "SILENCE_EVENT"
+    perturbations: [silence_timeout]
+    expected_agent_behavior:
+      must_prompt_again: true
+      must_offer_callback_or_goodbye: true
+
+  - turn: 3
+    user: "Sorry I'm here, can you help me with billing?"
+    expected_agent_behavior:
+      must_continue_normally: true
+      must_not_repeat_silence_message: true
+
+expected:
+  tool_calls: []
+  final_outcome: session_recovered
+  must_say_any:
+    - "Are you still there"
+    - "still with me"
+  must_not_say_any:
+    - "Are you still there"  # Should not repeat this after caller returned
+  taxonomy_if_failed:
+    - timeout_recovery_failure
+    - repetition_loop
+
+thresholds:
+  max_latency_ms: 5000
+  max_silence_prompts: 2
+
+pass_criteria:
+  graceful_silence_handling: true
+  no_infinite_prompt_loop: true

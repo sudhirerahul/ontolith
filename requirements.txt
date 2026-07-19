@@ -1,0 +1,20 @@
+pydantic>=2.0
+pyyaml>=6.0
+rich>=13.0
+streamlit>=1.28
+jinja2>=3.1
+pytest>=7.4
+websockets>=12.0
+
+# ── Audio bridge (for real agent testing) ──────────────────────────────────
+# Install at least one TTS and one STT engine before running real agents.
+
+# TTS options (pick one):
+pyttsx3>=2.90          # free, offline, works on Windows immediately — RECOMMENDED
+# TTS>=0.22            # Coqui TTS — better quality, larger download (~100MB model)
+# openai>=1.0          # OpenAI TTS — best quality, paid, needs OPENAI_API_KEY
+
+# STT options (pick one):
+faster-whisper>=1.0    # free, offline, fast — RECOMMENDED
+# openai-whisper       # free, offline, original OpenAI Whisper
+# openai>=1.0          # OpenAI STT API — paid, needs OPENAI_API_KEY

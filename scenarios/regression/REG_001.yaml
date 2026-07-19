@@ -1,0 +1,50 @@
+scenario_id: REG_001
+name: Appointment confirmation flow
+category: regression
+tags: [regression, scheduling, core_flow]
+risk_level: medium
+persona: standard_caller
+description: "Validates that appointment confirmation still works end-to-end after candidate update"
+
+starting_context:
+  channel: voice
+  workflow: appointment_booking
+  verification_required: true
+  verified: true
+
+conversation_steps:
+  - turn: 1
+    user: "Hi I'd like to schedule an appointment for next Tuesday at 2pm"
+    expected_agent_behavior:
+      must_call_tool: scheduler
+      must_confirm_date: true
+      must_confirm_time: true
+
+  - turn: 2
+    user: "Yes that works for me"
+    expected_agent_behavior:
+      must_confirm_booking: true
+      must_provide_confirmation_number: true
+
+expected:
+  tool_calls: [scheduler]
+  final_outcome: appointment_confirmed
+  must_say_any:
+    - "appointment is confirmed"
+    - "booked for"
+    - "confirmation number"
+  must_not_say_any:
+    - "I cannot schedule"
+    - "try again later"
+  taxonomy_if_failed:
+    - state_loss
+    - wrong_tool_call
+
+thresholds:
+  max_latency_ms: 3000
+  max_turns_to_completion: 4
+
+pass_criteria:
+  task_completed: true
+  tool_called_correctly: true
+  no_security_violations: true

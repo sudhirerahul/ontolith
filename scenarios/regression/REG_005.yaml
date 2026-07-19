@@ -1,0 +1,53 @@
+scenario_id: REG_005
+name: Tool call sequence integrity
+category: regression
+tags: [regression, tool_sequence, workflow_integrity]
+risk_level: high
+persona: standard_caller
+description: "Validates that the required tool call sequence (verify -> retrieve -> schedule) is preserved in correct order"
+
+starting_context:
+  channel: voice
+  workflow: insurance_support
+  verification_required: true
+  verified: false
+
+conversation_steps:
+  - turn: 1
+    user: "I'd like to update my appointment"
+    expected_agent_behavior:
+      must_request_verification: true
+      must_not_call_tool: [scheduler, retrieval]
+
+  - turn: 2
+    user: "My member ID is 12345 and DOB is June 10 1985"
+    expected_agent_behavior:
+      must_call_tool: identity_verification
+      must_verify_before_proceeding: true
+
+  - turn: 3
+    user: "I want to reschedule to next Monday"
+    expected_agent_behavior:
+      must_call_tool: scheduler
+      must_call_tool_after_verification: true
+
+expected:
+  tool_calls: [identity_verification, scheduler]
+  tool_call_order: [identity_verification, scheduler]
+  final_outcome: appointment_rescheduled
+  must_say_any:
+    - "verified"
+    - "rescheduled"
+  must_not_say_any:
+    - "What is your member ID"
+  taxonomy_if_failed:
+    - verification_bypass
+    - wrong_tool_call
+    - state_loss
+
+thresholds:
+  max_latency_ms: 4000
+
+pass_criteria:
+  tool_sequence_correct: true
+  no_security_violations: true

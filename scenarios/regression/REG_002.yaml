@@ -1,0 +1,48 @@
+scenario_id: REG_002
+name: Billing FAQ retrieval accuracy
+category: regression
+tags: [regression, billing, retrieval, faq]
+risk_level: low
+persona: billing_inquiry_caller
+description: "Validates that the billing FAQ retrieval still returns correct and grounded answers"
+
+starting_context:
+  channel: voice
+  workflow: billing_support
+  verification_required: true
+  verified: true
+
+conversation_steps:
+  - turn: 1
+    user: "What is my payment due date?"
+    expected_agent_behavior:
+      must_call_tool: retrieval
+      must_not_hallucinate: true
+      must_ground_answer: true
+
+  - turn: 2
+    user: "And what happens if I pay late?"
+    expected_agent_behavior:
+      must_call_tool: retrieval
+      must_reference_policy: true
+
+expected:
+  tool_calls: [retrieval, retrieval]
+  final_outcome: faq_answered
+  must_say_any:
+    - "due date"
+    - "payment"
+  must_not_say_any:
+    - "I don't have that information"
+    - "I'm not sure"
+  taxonomy_if_failed:
+    - retrieval_grounding_failure
+    - hallucinated_answer
+
+thresholds:
+  max_latency_ms: 2500
+
+pass_criteria:
+  task_completed: true
+  tool_called_correctly: true
+  no_hallucination: true

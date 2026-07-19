@@ -1,0 +1,102 @@
+scenario_id: VR_006
+name: Repeated question without progress
+category: voice_robustness
+tags: [robustness, repetition, loop, clarification]
+risk_level: medium
+persona: confused_caller
+description: "Caller asks the same question multiple times. Agent should not loop, should escalate or try a different approach."
+
+starting_context:
+  channel: voice
+  workflow: general_support
+  verification_required: false
+
+conversation_steps:
+  - turn: 1
+    user: "What are my options?"
+    expected_agent_behavior:
+      must_explain_options: true
+
+  - turn: 2
+    user: "But what are my options?"
+    perturbations: [repetition]
+    expected_agent_behavior:
+      must_try_different_explanation: true
+      must_not_give_identical_response: true
+
+  - turn: 3
+    user: "I still don't understand, what are my options?"
+    perturbations: [repetition]
+    expected_agent_behavior:
+      must_offer_escalation_or_different_approach: true
+      must_not_loop_same_script: true
+
+expected:
+  tool_calls: []
+  final_outcome: loop_broken
+  must_say_any:
+    - "let me try"
+    - "different way"
+    - "speak with someone"
+    - "can I help clarify"
+  must_not_say_any: []
+  taxonomy_if_failed:
+    - repetition_loop
+
+thresholds:
+  max_latency_ms: 3000
+  max_identical_responses: 1
+
+pass_criteria:
+  no_identical_consecutive_responses: true
+  escalation_offered_after_repetition: true
+---
+scenario_id: VR_007
+name: Hesitation and filler word tolerance
+category: voice_robustness
+tags: [robustness, hesitation, filler_words, patience]
+risk_level: low
+persona: nervous_caller
+description: "Caller speaks with heavy hesitation and filler words. Agent must wait for complete intent before responding."
+
+starting_context:
+  channel: voice
+  workflow: appointment_booking
+  verification_required: false
+
+conversation_steps:
+  - turn: 1
+    user: "Um... uh... I was... like... I wanted to... you know... book something"
+    perturbations: [hesitation, filler_words]
+    expected_agent_behavior:
+      must_wait_for_intent: true
+      must_not_over_interrupt: true
+      must_ask_clarifying_question: true
+
+  - turn: 2
+    user: "Yeah like... an appointment... for next... uh... week"
+    perturbations: [hesitation, filler_words, fragmented_answer]
+    expected_agent_behavior:
+      must_extract_intent: {intent: book_appointment}
+      must_capture_timeframe: {slot: preferred_week, value: "next week"}
+
+expected:
+  tool_calls: [scheduler]
+  final_outcome: appointment_booked
+  must_say_any:
+    - "appointment"
+    - "next week"
+    - "schedule"
+  must_not_say_any:
+    - "I don't understand"
+    - "Please speak clearly"
+  taxonomy_if_failed:
+    - ambiguous_input_failure
+    - state_loss
+
+thresholds:
+  max_latency_ms: 4000
+
+pass_criteria:
+  intent_correctly_extracted: true
+  caller_not_dismissed: true
