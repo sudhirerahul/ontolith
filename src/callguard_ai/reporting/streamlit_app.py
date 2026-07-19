@@ -152,8 +152,9 @@ with col5:
 
 st.divider()
 
-tab1, tab2, tab3, tab4, tab5 = st.tabs([
-    "📋 Scenarios", "🔒 Security", "📜 Compliance", "⚙ Reliability", "🏷 Taxonomy"
+tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
+    "📋 Scenarios", "🔒 Security", "📜 Compliance", "⚙ Reliability", "🏷 Taxonomy",
+    "🏬 Retail Quality", "🎭 Roleplay Studio", "🐛 Prompt Debugger",
 ])
 
 with tab1:
@@ -235,6 +236,153 @@ with tab5:
         st.bar_chart(data={k: v for k, v in taxonomy.items()})
     else:
         st.success("No failures recorded in taxonomy.")
+
+
+def _discover_retailers() -> dict[str, str]:
+    """slug -> display name, from scenarios/retail/*/_roleplay_set.json and scenarios/golden/*/"""
+    names: dict[str, str] = {}
+    for base in ["retail", "golden"]:
+        base_dir = PROJECT_ROOT / "scenarios" / base
+        if not base_dir.exists():
+            continue
+        for d in base_dir.iterdir():
+            if not d.is_dir():
+                continue
+            rs_path = d / "_roleplay_set.json"
+            if rs_path.exists():
+                names[d.name] = json.loads(rs_path.read_text()).get("retailer", d.name.replace("_", " ").title())
+            else:
+                names.setdefault(d.name, d.name.replace("_", " ").title())
+    return names
+
+
+with tab6:
+    st.subheader("🏬 Retail Quality Dashboard")
+    from callguard_ai.dashboard.trends import compute_quality_trends
+    from callguard_ai.golden.registry import GoldenRegistry
+
+    retailers = _discover_retailers()
+    if not retailers:
+        st.info("No retail data yet. Generate scenarios with `callguard studio generate` "
+                 "and run them with `run --category retail_sales --retail`.")
+    else:
+        retailer_slug = st.selectbox("Retailer", list(retailers.keys()),
+                                      format_func=lambda s: retailers[s], key="retail_dash_retailer")
+        trends = compute_quality_trends(PROJECT_ROOT, retailer=retailers[retailer_slug])
+
+        st.markdown("#### Quality Trend")
+        series = trends["dimension_series"]
+        if series:
+            import pandas as pd
+            all_runs = sorted({run_id for pts in series.values() for run_id, _ in pts})
+            chart_df = pd.DataFrame(index=all_runs)
+            for dim, pts in series.items():
+                col = {run_id: score for run_id, score in pts}
+                chart_df[dim] = [col.get(r) for r in all_runs]
+            st.line_chart(chart_df)
+
+            deltas = trends["trend_deltas"]
+            cols = st.columns(min(len(deltas), 5) or 1)
+            for i, (dim, delta) in enumerate(deltas.items()):
+                with cols[i % len(cols)]:
+                    st.metric(dim.replace("_", " ").title(), f"{delta:+.1f} pts" if len(series[dim]) >= 2 else "—")
+        else:
+            st.info("No retail run history yet for this retailer.")
+
+        st.markdown("#### Top Failures")
+        if trends["top_failures"]:
+            import pandas as pd
+            st.dataframe(pd.DataFrame(trends["top_failures"], columns=["Failure Code", "Count"]),
+                         use_container_width=True, hide_index=True)
+        else:
+            st.success("No failures recorded yet.")
+
+        st.markdown("#### Recent Customer Issues")
+        registry = GoldenRegistry(PROJECT_ROOT)
+        entries = [e for e in registry.list() if e["retailer"] == retailers[retailer_slug]]
+        status_icon = {"pending": "🕓 Pending Review", "approved": "➕ Added to regression suite",
+                       "verified": "✅ Verified", "rejected": "✗ Rejected"}
+        if entries:
+            for e in entries:
+                st.markdown(f"- **{e['customer_issue_id']}** ({e['scenario_id']}) — "
+                             f"{status_icon.get(e['status'], e['status'])} — {e.get('root_cause_summary', '')}")
+        else:
+            st.info("No customer issues imported yet. Use `callguard golden import`.")
+
+        pending = registry.list(status="pending")
+        pending = [e for e in pending if e["retailer"] == retailers[retailer_slug]]
+        if pending:
+            st.markdown("#### Pending Review")
+            for e in pending:
+                c1, c2, c3 = st.columns([4, 1, 1])
+                c1.markdown(f"**{e['scenario_id']}** — {e.get('root_cause_summary', '')}")
+                if c2.button("✅ Approve", key=f"approve_{e['scenario_id']}"):
+                    registry.approve(e["scenario_id"])
+                    st.rerun()
+                if c3.button("✗ Reject", key=f"reject_{e['scenario_id']}"):
+                    registry.reject(e["scenario_id"], reason="Rejected via dashboard")
+                    st.rerun()
+
+with tab7:
+    st.subheader("🎭 Retail Roleplay Studio")
+    retail_only = {
+        d.name: json.loads((d / "_roleplay_set.json").read_text()).get("retailer", d.name)
+        for d in (PROJECT_ROOT / "scenarios" / "retail").iterdir()
+        if d.is_dir() and (d / "_roleplay_set.json").exists()
+    } if (PROJECT_ROOT / "scenarios" / "retail").exists() else {}
+
+    if not retail_only:
+        st.info("No roleplay sets yet. Generate one with `callguard studio generate --retailer ... --playbook ...`.")
+    else:
+        slug = st.selectbox("Retailer", list(retail_only.keys()),
+                             format_func=lambda s: retail_only[s], key="studio_retailer")
+        rs = json.loads((PROJECT_ROOT / "scenarios" / "retail" / slug / "_roleplay_set.json").read_text())
+
+        st.caption(f"{'LLM-enhanced' if rs['llm_powered'] else 'Template-generated'} · "
+                   f"{rs['metadata']['scenario_count']} scenarios")
+
+        st.markdown("#### Product / Objection Tree")
+        for node in rs["hierarchy"]["nodes"]:
+            st.markdown(f"- **{node['label']}** — {len(node['scenario_ids'])} scenario(s)")
+
+        st.markdown("#### Personas")
+        import pandas as pd
+        st.dataframe(pd.DataFrame([
+            {"Persona": p["name"], "Motivation": p["motivation"], "Tone": p["tone"],
+             "Budget sensitivity": p["budget_sensitivity"], "Objections": ", ".join(p["objections"])}
+            for p in rs["personas"]
+        ]), use_container_width=True, hide_index=True)
+
+with tab8:
+    st.subheader("🐛 Prompt Debugger — Root Cause Analysis")
+    run_dir = RUNS_DIR / selected_run
+    root_cause_files = sorted(run_dir.glob("*/root_cause.json")) if run_dir.exists() else []
+
+    if not root_cause_files:
+        st.info("No root-cause analyses in this run (only generated for scenarios that failed "
+                 "or scored below 70).")
+    else:
+        options = {f.parent.name: f for f in root_cause_files}
+        scenario_id = st.selectbox("Scenario", list(options.keys()), key="debugger_scenario")
+        rc = json.loads(options[scenario_id].read_text())
+
+        mode = "🟢 LLM-powered" if rc.get("llm_powered") else "🟡 Deterministic fallback"
+        st.caption(mode)
+
+        st.markdown(f"**Conversation Summary**\n\n{rc.get('conversation_summary', '')}")
+        c1, c2 = st.columns(2)
+        c1.markdown(f"**Customer Concern**\n\n{rc.get('customer_concern', '')}")
+        c2.markdown(f"**Associate Response**\n\n{rc.get('associate_response', '')}")
+        st.error(f"**Missed Opportunity**\n\n{rc.get('missed_opportunity', '')}")
+        st.markdown("**Expected Behavior**")
+        for i, step in enumerate(rc.get("expected_behavior", [])):
+            st.markdown(f"{i+1}. {step}")
+        st.warning(f"**Likely Prompt Issue**\n\n{rc.get('likely_prompt_issue', '')}")
+        st.success(f"**Suggested Prompt Change**\n\n{rc.get('suggested_prompt_change', '')}")
+        if rc.get("regression_tests_affected"):
+            st.markdown("**Regression Tests Affected**")
+            for sid in rc["regression_tests_affected"]:
+                st.markdown(f"- `{sid}`")
 
 # Block/Warn reasons in sidebar
 if verdict_data.get("block_reasons"):

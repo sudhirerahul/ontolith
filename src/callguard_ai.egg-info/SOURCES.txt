@@ -31,7 +31,9 @@ src/callguard_ai/gate/release_gate.py
 src/callguard_ai/llm/__init__.py
 src/callguard_ai/llm/client.py
 src/callguard_ai/models/__init__.py
+src/callguard_ai/models/analysis.py
 src/callguard_ai/models/evaluation.py
+src/callguard_ai/models/persona.py
 src/callguard_ai/models/run_result.py
 src/callguard_ai/models/scenario.py
 src/callguard_ai/models/verdict.py

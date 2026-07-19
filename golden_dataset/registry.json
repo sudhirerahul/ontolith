@@ -1,0 +1,19 @@
+{
+  "entries": {
+    "GOLDEN_ASHLEY_CS_48213": {
+      "scenario_id": "GOLDEN_ASHLEY_CS_48213",
+      "retailer": "Ashley HomeStore",
+      "customer_issue_id": "CS-48213",
+      "status": "approved",
+      "created_at": "2026-07-19T12:20:41.497491+00:00",
+      "root_cause_summary": "Never asked WHY the customer raised this concern before offering a resolution.",
+      "pending_path": "golden_dataset/pending/GOLDEN_ASHLEY_CS_48213.yaml",
+      "approved_at": "2026-07-19T12:20:42.186475+00:00",
+      "scenario_path": "scenarios/golden/ashley_homestore/GOLDEN_ASHLEY_CS_48213.yaml",
+      "last_run_id": "20260719_122107_60d929",
+      "last_run_passed": false,
+      "last_checked_at": "2026-07-19T12:24:38.020393+00:00",
+      "regressed_at": "2026-07-19T12:24:38.020415+00:00"
+    }
+  }
+}

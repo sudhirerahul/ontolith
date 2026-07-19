@@ -1,0 +1,8 @@
+COMMON OBJECTIONS
+
+- financing: "I don't want another monthly payment."
+- competitor_pricing: "I saw this cheaper at [competitor]."
+- delivery: "My delivery got pushed back and nobody told me."
+- warranty: "What does 'as-is' actually mean, are you going to screw me on this?"
+- closing: "I need to think about it / talk to my spouse first."
+- rapport: "Every time I come in here someone's trying to upsell me."

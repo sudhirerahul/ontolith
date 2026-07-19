@@ -439,6 +439,26 @@ HTML_TEMPLATE = """
   </div>
   {% endif %}
 
+  <!-- Root cause highlights -->
+  {% if root_causes %}
+  <div class="section">
+    <div class="section-title">🐛 Root Cause Highlights</div>
+    {% for rc in root_causes %}
+    <div class="findings-list" style="margin-bottom: 12px;">
+      <li style="display:block; border-bottom:none; padding-bottom: 4px;">
+        <div class="rule-id">{{ rc.scenario_id }}</div>
+      </li>
+      <li><strong>Missed opportunity:</strong>&nbsp;{{ rc.missed_opportunity }}</li>
+      <li><strong>Likely prompt issue:</strong>&nbsp;{{ rc.likely_prompt_issue }}</li>
+      <li><strong>Suggested change:</strong>&nbsp;{{ rc.suggested_prompt_change }}</li>
+      {% if rc.regression_tests_affected %}
+      <li><strong>Regression tests affected:</strong>&nbsp;{{ rc.regression_tests_affected | join(", ") }}</li>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
   <div class="run-meta">
     <span>Run ID: {{ run_id }}</span>
     <span>Generated: {{ generated_at }}</span>
@@ -456,6 +476,7 @@ def generate_html_report(
     verdict: ReleaseVerdict,
     comparisons: list,
     reports_dir: Path,
+    root_causes: list | None = None,
 ) -> Path:
     ensure_dir(reports_dir)
     generated_at = datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
@@ -463,6 +484,7 @@ def generate_html_report(
     html = Template(HTML_TEMPLATE).render(
         verdict=verdict,
         comparisons=comparisons,
+        root_causes=root_causes or [],
         run_id=verdict.run_id,
         generated_at=generated_at,
     )

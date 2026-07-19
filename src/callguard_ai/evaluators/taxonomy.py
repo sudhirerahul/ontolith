@@ -24,6 +24,13 @@ TAXONOMY: dict[str, tuple[str, str]] = {
     "ambiguous_input_failure":       ("Agent could not handle ambiguous or fragmented input", "medium"),
     "contradiction_handling_failure":("Agent failed to reconcile contradictory caller statements", "medium"),
     "context_loss":                  ("Agent forgot earlier context (name, preference, intent)", "high"),
+
+    # --- Retail sales-coaching codes ---
+    "missed_discovery":              ("Associate resolved an objection without discovery questions first", "high"),
+    "premature_resolution":          ("Associate jumped to a solution before understanding the concern", "medium"),
+    "objection_unresolved":          ("Customer objection was never actually addressed", "high"),
+    "unsupported_product_claim":     ("Associate made a product/pricing claim not grounded in the catalog", "high"),
+    "tone_mismatch":                 ("Associate's tone did not match the retailer's brand voice", "low"),
 }
 
 

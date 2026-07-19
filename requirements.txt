@@ -5,6 +5,7 @@ streamlit>=1.28
 jinja2>=3.1
 pytest>=7.4
 websockets>=12.0
+pypdf>=4.0             # PDF text extraction for Retail Roleplay Studio playbook ingestion
 
 # ── Audio bridge (for real agent testing) ──────────────────────────────────
 # Install at least one TTS and one STT engine before running real agents.

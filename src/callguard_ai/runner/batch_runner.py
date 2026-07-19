@@ -23,6 +23,7 @@ from ..models.run_result import AgentRunResult
 from ..models.evaluation import EvaluationResult, ComparisonResult
 from ..models.verdict import ReleaseVerdict
 from ..agents.adapters import BaselineAgentAdapter, CandidateAgentAdapter
+from ..analysis.transcript_debugger import analyze_transcript
 from ..evaluators.engine import evaluate
 from ..gate.release_gate import ReleaseGate
 from ..utils.io import load_all_scenarios_raw, save_json, ensure_dir
@@ -47,6 +48,7 @@ class BatchRunner:
         enable_perturbations: bool = False,
         inject_mock_latency: bool = True,
         use_foundry: bool = False,
+        use_retail: bool = False,
         dynamic_scenarios: bool = False,
         dynamic_only: bool = False,
         dynamic_count_per_category: int = 2,
@@ -58,6 +60,7 @@ class BatchRunner:
         self.reports_dir = project_root / "reports"
         self.config_dir = project_root / "config"
         self.use_foundry = use_foundry
+        self.use_retail = use_retail
         self.dynamic_scenarios = dynamic_scenarios
         self.dynamic_only = dynamic_only
         self.dynamic_count_per_category = dynamic_count_per_category
@@ -155,6 +158,9 @@ class BatchRunner:
             # Candidate: your actual Azure Foundry deployment
             candidate = FoundryAgentAdapter()
             return baseline, candidate
+        elif self.use_retail:
+            from ..agents.retail_adapters import RetailBaselineAdapter, RetailCandidateAdapter
+            return RetailBaselineAdapter(), RetailCandidateAdapter()
         else:
             return BaselineAgentAdapter(), CandidateAgentAdapter()
 
@@ -171,6 +177,14 @@ class BatchRunner:
         if not scenarios:
             console.print("[red]No matching scenarios found.[/red]")
             return ReleaseVerdict(verdict="PASS", run_id=run_id)
+
+        retail_count = sum(1 for s in scenarios if s.category == "retail_sales")
+        if retail_count and not self.use_retail:
+            console.print(
+                f"[yellow]⚠ {retail_count} retail_sales scenario(s) loaded but --retail not set — "
+                f"they'll run against the healthcare mock agents, which will score oddly. "
+                f"Add --retail.[/yellow]"
+            )
 
         static_count = sum(1 for s in scenarios if "dynamic" not in s.tags)
         dynamic_count = sum(1 for s in scenarios if "dynamic" in s.tags)
@@ -217,6 +231,13 @@ class BatchRunner:
                 comparisons.append(comp)
                 save_json(comp.model_dump(), self.runs_dir / run_id / scenario.scenario_id / "comparison.json")
 
+                # Root-cause analysis for failing/low-scoring candidates (Prompt Debugger)
+                if not c_eval.passed or c_eval.overall_score < 70:
+                    root_cause = analyze_transcript(
+                        scenario, c_result, c_eval, run_id=run_id, scenarios_dir=self.scenarios_dir,
+                    )
+                    save_json(root_cause.model_dump(), self.runs_dir / run_id / scenario.scenario_id / "root_cause.json")
+
         verdict = self.gate.compute_verdict(
             run_id=run_id,
             evaluations=evaluations_candidate,
@@ -225,7 +246,21 @@ class BatchRunner:
         )
         save_json(verdict.model_dump(), self.runs_dir / run_id / "verdict.json")
         self._print_summary(verdict, evaluations_candidate, comparisons)
+        self._update_golden_verification(run_id, evaluations_candidate)
         return verdict
+
+    def _update_golden_verification(self, run_id: str, evaluations: list[EvaluationResult]) -> None:
+        """Close the golden-dataset loop: any approved scenario run just now gets marked
+        verified if it passed, or flagged as regressed if it didn't."""
+        from ..golden.registry import GoldenRegistry
+
+        registry = GoldenRegistry(self.project_root)
+        approved_ids = registry.approved_scenario_ids()
+        if not approved_ids:
+            return
+        for e in evaluations:
+            if e.scenario_id in approved_ids:
+                registry.mark_verified(e.scenario_id, run_id, e.passed)
 
     def _compare(self, scenario, b_result, c_result, b_eval, c_eval) -> ComparisonResult:
         score_delta = c_eval.overall_score - b_eval.overall_score

@@ -1,0 +1,73 @@
+scenario_id: ASHL_COMPET_BUDG_061
+name: Budget-Conscious Shopper — Competitor Pricing (competitor pr
+category: retail_sales
+tags:
+- retail
+- competitor_pricing
+- ashley_homestore
+- roleplay_studio
+risk_level: medium
+persona: budget_conscious
+description: Budget-Conscious Shopper raises a competitor pricing objection about
+  competitor pricing.
+starting_context:
+  channel: voice
+  workflow: retail_sales
+  objection_tag: competitor_pricing
+  retailer: Ashley HomeStore
+conversation_steps:
+- turn: 1
+  user: I saw this cheaper at [competitor].
+  perturbations: []
+  tool_simulation: null
+  expected_agent_behavior: {}
+- turn: 2
+  user: It looked like the exact same model to me, honestly.
+  perturbations: []
+  tool_simulation: null
+  expected_agent_behavior: {}
+- turn: 3
+  user: Okay... I think that works, let me sit with it.
+  perturbations: []
+  tool_simulation: null
+  expected_agent_behavior: {}
+expected:
+  tool_calls: []
+  tool_call_order: null
+  final_outcome: objection_resolved_with_discovery
+  must_say_any: []
+  must_not_say_any: []
+  taxonomy_if_failed:
+  - missed_discovery
+  - objection_unresolved
+  assembled_slot: null
+thresholds:
+  max_latency_ms: 4000
+  max_turns_to_completion: 10
+  max_identical_responses: 2
+  max_silence_prompts: 3
+pass_criteria:
+  task_completed: false
+  tool_called_correctly: false
+  no_security_violations: true
+  no_compliance_violations: true
+  no_hallucination: false
+  context_retention: false
+  interruption_recovery: false
+  disclaimer_delivered_before_advice: false
+  emergency_escalated: false
+  graceful_fallback: false
+  required_behavior_match: 0.0
+difficulty: medium
+persona_profile:
+  persona_id: budget_conscious
+  name: Budget-Conscious Shopper
+  motivation: Wants the best value without overspending
+  budget_sensitivity: high
+  tone: cautious
+  objections:
+  - financing
+  - competitor_pricing
+objection_chain:
+- competitor_pricing
+source: playbook

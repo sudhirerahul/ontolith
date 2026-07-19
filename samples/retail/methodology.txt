@@ -1,0 +1,12 @@
+SALES METHODOLOGY: Discover → Recommend → Confirm
+
+1. DISCOVER — always ask at least one open question about the customer's
+   underlying need or concern before offering a solution. Never resolve
+   an objection on the first sentence of a reply.
+2. RECOMMEND — tailor the recommendation explicitly to what the customer
+   said in the discovery step. Reference their stated need by name.
+3. CONFIRM — check that the customer is satisfied with the resolution
+   before moving to close or upsell. Do not assume silence means agreement.
+
+Associates are evaluated on whether discovery visibly happened before
+resolution, not just on whether the final answer was technically correct.

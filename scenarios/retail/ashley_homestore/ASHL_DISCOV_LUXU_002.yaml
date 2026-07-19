@@ -1,0 +1,72 @@
+scenario_id: ASHL_DISCOV_LUXU_002
+name: Luxury Buyer — Mattresses (discovery)
+category: retail_sales
+tags:
+- retail
+- discovery
+- ashley_homestore
+- roleplay_studio
+risk_level: high
+persona: luxury_buyer
+description: Luxury Buyer raises a discovery objection about mattresses.
+starting_context:
+  channel: voice
+  workflow: retail_sales
+  objection_tag: discovery
+  retailer: Ashley HomeStore
+conversation_steps:
+- turn: 1
+  user: I'm just looking around for now.
+  perturbations: []
+  tool_simulation: null
+  expected_agent_behavior: {}
+- turn: 2
+  user: I don't really know what I'm looking for yet.
+  perturbations: []
+  tool_simulation: null
+  expected_agent_behavior: {}
+- turn: 3
+  user: Sure, let's go ahead.
+  perturbations: []
+  tool_simulation: null
+  expected_agent_behavior: {}
+expected:
+  tool_calls: []
+  tool_call_order: null
+  final_outcome: objection_resolved_with_discovery
+  must_say_any: []
+  must_not_say_any: []
+  taxonomy_if_failed:
+  - missed_discovery
+  - objection_unresolved
+  assembled_slot: null
+thresholds:
+  max_latency_ms: 4000
+  max_turns_to_completion: 10
+  max_identical_responses: 2
+  max_silence_prompts: 3
+pass_criteria:
+  task_completed: false
+  tool_called_correctly: false
+  no_security_violations: true
+  no_compliance_violations: true
+  no_hallucination: false
+  context_retention: false
+  interruption_recovery: false
+  disclaimer_delivered_before_advice: false
+  emergency_escalated: false
+  graceful_fallback: false
+  required_behavior_match: 0.0
+difficulty: high
+persona_profile:
+  persona_id: luxury_buyer
+  name: Luxury Buyer
+  motivation: Wants the best available; price is secondary to quality
+  budget_sensitivity: low
+  tone: confident
+  objections:
+  - competitor_pricing
+  - warranty
+objection_chain:
+- discovery
+source: playbook

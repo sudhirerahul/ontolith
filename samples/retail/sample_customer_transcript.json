@@ -1,0 +1,12 @@
+{
+  "customer_issue_id": "CS-48213",
+  "retailer": "Ashley HomeStore",
+  "channel": "in_store_voice",
+  "turns": [
+    {"role": "customer", "text": "I really like the Cloudrest but I don't want another monthly payment."},
+    {"role": "associate", "text": "No problem, we have 0% financing for 12 months, or you could open a store card for an even lower rate."},
+    {"role": "customer", "text": "I mean... I guess. I don't know, I already have a lot of bills right now."},
+    {"role": "associate", "text": "The store card actually has the best terms, want me to start the application?"},
+    {"role": "customer", "text": "No, I think I'll just wait and think about it."}
+  ]
+}

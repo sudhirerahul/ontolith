@@ -58,3 +58,9 @@ class Scenario(BaseModel):
     expected: Expected = Field(default_factory=Expected)
     thresholds: Thresholds = Field(default_factory=Thresholds)
     pass_criteria: PassCriteria = Field(default_factory=PassCriteria)
+
+    # --- Retail extensions (additive, backward compatible) ---
+    difficulty: str = "medium"                                   # low | medium | high | expert
+    persona_profile: dict[str, Any] = Field(default_factory=dict)  # structured persona metadata
+    objection_chain: list[str] = Field(default_factory=list)       # ordered objection tags
+    source: str = "static"                                        # static | dynamic | playbook | golden

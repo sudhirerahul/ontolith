@@ -60,6 +60,32 @@ python -m callguard_ai list
 python -m callguard_ai setup
 ```
 
+### Retail extensions
+
+```bash
+# Retail Roleplay Studio — turn a retailer playbook into scenarios
+python -m callguard_ai studio generate --retailer "Ashley HomeStore" \
+  --playbook samples/retail/ashley_homestore_playbook.txt \
+  --catalog samples/retail/catalog.json \
+  --methodology samples/retail/methodology.txt \
+  --objections samples/retail/objections.txt \
+  --brand-tone samples/retail/brand_tone.txt \
+  --count 100
+python -m callguard_ai studio list --retailer "Ashley HomeStore"
+
+# Run the generated scenarios against the retail sales-associate mock agents
+python -m callguard_ai run --category retail_sales --retail
+
+# Prompt Debugger — root-cause card for any failed/low-scoring scenario in a run
+python -m callguard_ai debug show --run <run_id> --scenario <scenario_id>
+
+# Golden dataset — real customer transcript → reviewed → permanent regression test
+python -m callguard_ai golden import --transcript samples/retail/sample_customer_transcript.json --retailer "Ashley HomeStore"
+python -m callguard_ai golden list --status pending
+python -m callguard_ai golden approve <scenario_id>
+python -m callguard_ai golden reject <scenario_id> --reason "..."
+```
+
 ### Tests
 
 ```bash
@@ -95,6 +121,13 @@ Pipeline: **Batch Runner → (agents × scenarios) → Evaluation Engine → Rel
 5. **Release Gate** (`gate/release_gate.py`) — evaluates ordered rules from `config/release_gate.yaml` against the evaluation results (BLOCK rules for critical security/PII/verification-bypass/emergency-miss, WARN rules for regressions/repetition/tool errors) plus score-floor rules, producing a `ReleaseVerdict` (PASS/WARN/BLOCK) with structured reasons.
 
 6. **Output** — `reporting/html_report.py` renders a self-contained HTML report (Jinja2) per run into `reports/`; raw JSON artifacts (per-scenario `comparison.json`, `verdict.json`) go to `runs/<run_id>/`. `reporting/streamlit_app.py` is a dashboard that reads from `runs/` to browse historical runs.
+
+7. **Retail extensions** — a parallel `category="retail_sales"` path that reuses the pipeline above end-to-end (same `Scenario` YAML format, same recursive loader, same runner):
+   - **Roleplay Studio** (`playbook/`) — `parsers.py` ingests a playbook (PDF/txt) + catalog (JSON/CSV); `roleplay_generator.py::RoleplayStudio` turns them into persona × objection-tree `Scenario`s (deterministic template, or LLM-enhanced when `OPENROUTER_API_KEY` is set), written to `scenarios/retail/<retailer_slug>/`. `agents/retail_mock_agent.py` + `agents/retail_adapters.py` (used via `run --retail`) simulate a good associate (discovers before resolving) vs. a flawed one (resolves immediately) — the concrete regression the other two features reason about.
+   - **Prompt Debugger** (`analysis/transcript_debugger.py`) — for any failing/low-scoring candidate evaluation, produces a structured `RootCauseAnalysis` (concern → response → missed opportunity → expected behavior → likely prompt issue → suggested change → regression tests affected), saved as `runs/<run_id>/<scenario_id>/root_cause.json`. Viewable via `debug show` or the dashboard's Prompt Debugger tab.
+   - **Golden dataset** (`golden/`) — `transcript_intake.py` replays a real customer transcript through the same `evaluate()`/`analyze_transcript()` path to draft a permanent regression `Scenario`; `registry.py::GoldenRegistry` tracks pending → approved → verified state in `golden_dataset/registry.json`. Approving moves the YAML into `scenarios/golden/<retailer_slug>/`, so it's automatically included in every future run — `BatchRunner` marks it `verified` once it passes, or demotes it back to `approved` if it regresses.
+   - `evaluators/engine.py` branches on `scenario.category == "retail_sales"` to a different dimension set (`evaluators/sales_eval.py`: discovery + objection_resolution, reusing `regression_eval`/`reliability_eval` for the rest) instead of the healthcare-oriented security/compliance evaluators.
+   - `dashboard/trends.py` aggregates historical runs into quality trends per sales dimension for the Streamlit dashboard's Retail Quality tab.
 
 ### Key config files (not code, but drive behavior)
 

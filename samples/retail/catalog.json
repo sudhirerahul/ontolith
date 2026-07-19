@@ -1,0 +1,9 @@
+[
+  {"sku": "MAT-BUD-100", "name": "Slumber Basics Firm", "category": "mattress", "tier": "budget", "price": 499, "warranty_years": 5},
+  {"sku": "MAT-COM-210", "name": "Cloudrest Hybrid Queen", "category": "mattress", "tier": "comfort", "price": 999, "warranty_years": 10},
+  {"sku": "MAT-LUX-330", "name": "Serene Plush King", "category": "mattress", "tier": "luxury", "price": 2499, "warranty_years": 15},
+  {"sku": "PROT-100", "name": "5-Year Stain & Spill Protection Plan", "category": "protection_plan", "price": 149},
+  {"sku": "PROT-200", "name": "5-Year Accidental Damage Plan", "category": "protection_plan", "price": 199},
+  {"sku": "FIN-0PCT-12", "name": "0% APR 12-Month Financing", "category": "financing", "price": 0},
+  {"sku": "FIN-STORECARD", "name": "Ashley Store Card", "category": "financing", "price": 0}
+]

@@ -1,0 +1,64 @@
+scenario_id: GOLDEN_ASHLEY_CS_48213
+name: 'Golden: Ashley HomeStore — CS-48213 (financing)'
+category: retail_sales
+tags:
+- golden
+- financing
+- ashley_homestore
+risk_level: high
+persona: real_customer
+description: Imported from real customer issue CS-48213.
+starting_context:
+  channel: voice
+  workflow: retail_sales
+  objection_tag: financing
+  retailer: Ashley HomeStore
+conversation_steps:
+- turn: 1
+  user: I really like the Cloudrest but I don't want another monthly payment.
+  perturbations: []
+  tool_simulation: null
+  expected_agent_behavior: {}
+- turn: 2
+  user: I mean... I guess. I don't know, I already have a lot of bills right now.
+  perturbations: []
+  tool_simulation: null
+  expected_agent_behavior: {}
+- turn: 3
+  user: No, I think I'll just wait and think about it.
+  perturbations: []
+  tool_simulation: null
+  expected_agent_behavior: {}
+expected:
+  tool_calls: []
+  tool_call_order: null
+  final_outcome: objection_resolved_with_discovery
+  must_say_any:
+  - what's most important
+  - what is most important
+  must_not_say_any: []
+  taxonomy_if_failed:
+  - missed_discovery
+  assembled_slot: null
+thresholds:
+  max_latency_ms: 4000
+  max_turns_to_completion: 10
+  max_identical_responses: 2
+  max_silence_prompts: 3
+pass_criteria:
+  task_completed: false
+  tool_called_correctly: false
+  no_security_violations: true
+  no_compliance_violations: true
+  no_hallucination: false
+  context_retention: false
+  interruption_recovery: false
+  disclaimer_delivered_before_advice: false
+  emergency_escalated: false
+  graceful_fallback: false
+  required_behavior_match: 0.0
+difficulty: medium
+persona_profile: {}
+objection_chain:
+- financing
+source: golden

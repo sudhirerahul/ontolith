@@ -199,7 +199,10 @@ class TestScenarioLoading:
             assert "conversation_steps" in s
 
     def test_scenario_categories_valid(self):
-        valid_categories = {"regression", "voice_robustness", "security", "compliance", "reliability"}
+        valid_categories = {
+            "regression", "voice_robustness", "security", "compliance", "reliability",
+            "retail_sales",
+        }
         scenarios_dir = PROJECT_ROOT / "scenarios"
         raw = load_all_scenarios_raw(scenarios_dir)
         for s in raw:

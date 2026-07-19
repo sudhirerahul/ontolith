@@ -139,6 +139,7 @@ def cmd_run(args: argparse.Namespace) -> None:
         enable_perturbations=args.perturbations,
         inject_mock_latency=not args.no_latency,
         use_foundry=args.foundry,
+        use_retail=getattr(args, "retail", False),
         dynamic_scenarios=args.dynamic or dynamic_only,
         dynamic_only=dynamic_only,
         dynamic_count_per_category=args.dynamic_count,
@@ -152,16 +153,21 @@ def cmd_run(args: argparse.Namespace) -> None:
 
     runs_dir = PROJECT_ROOT / "runs" / verdict.run_id
     comparisons = []
+    root_causes = []
     for scenario_dir in runs_dir.iterdir():
         if scenario_dir.is_dir():
             comp_file = scenario_dir / "comparison.json"
             if comp_file.exists():
                 comparisons.append(json.loads(comp_file.read_text()))
+            rc_file = scenario_dir / "root_cause.json"
+            if rc_file.exists():
+                root_causes.append(json.loads(rc_file.read_text()))
 
     report_path = generate_html_report(
         verdict=verdict,
         comparisons=comparisons,
         reports_dir=PROJECT_ROOT / "reports",
+        root_causes=root_causes,
     )
 
     console.print(f"\n[green]✓[/green] HTML report: [cyan]{report_path}[/cyan]")
@@ -202,16 +208,21 @@ def cmd_report(args: argparse.Namespace) -> None:
 
     verdict = ReleaseVerdict.model_validate(json.loads(verdict_file.read_text()))
     comparisons = []
+    root_causes = []
     for scenario_dir in (runs_dir / run_id).iterdir():
         if scenario_dir.is_dir():
             comp_file = scenario_dir / "comparison.json"
             if comp_file.exists():
                 comparisons.append(json.loads(comp_file.read_text()))
+            rc_file = scenario_dir / "root_cause.json"
+            if rc_file.exists():
+                root_causes.append(json.loads(rc_file.read_text()))
 
     report_path = generate_html_report(
         verdict=verdict,
         comparisons=comparisons,
         reports_dir=PROJECT_ROOT / "reports",
+        root_causes=root_causes,
     )
     console.print(f"[green]✓[/green] Report: [cyan]{report_path}[/cyan]")
 
@@ -237,6 +248,98 @@ def cmd_list(_args: argparse.Namespace) -> None:
                       raw.get("category", ""), raw.get("risk_level", ""))
     console.print(table)
     console.print("\n[dim]+ dynamic scenarios are generated fresh each run with [cyan]--dynamic[/cyan][/dim]")
+
+
+def cmd_studio_generate(args: argparse.Namespace) -> None:
+    from .playbook.parsers import ingest_playbook, ingest_catalog
+    from .playbook.roleplay_generator import RoleplayStudio
+    from .utils.io import save_json, ensure_dir
+    from .utils.slug import slugify
+    import yaml
+
+    playbook_text = ingest_playbook(args.playbook)
+    catalog = ingest_catalog(args.catalog) if args.catalog else []
+    methodology = ingest_playbook(args.methodology) if args.methodology else ""
+    objections = ingest_playbook(args.objections) if args.objections else ""
+    brand_tone = ingest_playbook(args.brand_tone) if args.brand_tone else ""
+
+    studio = RoleplayStudio(
+        retailer=args.retailer,
+        playbook_text=playbook_text,
+        catalog=catalog,
+        methodology_text=methodology,
+        objections_text=objections,
+        brand_tone_text=brand_tone,
+    )
+    roleplay_set, scenarios = studio.generate(count=args.count)
+
+    slug = slugify(args.retailer)
+    out_dir = ensure_dir(PROJECT_ROOT / "scenarios" / "retail" / slug)
+    for scenario in scenarios:
+        with open(out_dir / f"{scenario.scenario_id}.yaml", "w", encoding="utf-8") as f:
+            yaml.safe_dump(scenario.model_dump(), f, sort_keys=False, allow_unicode=True)
+
+    save_json(roleplay_set.model_dump(), PROJECT_ROOT / "scenarios" / "retail" / slug / "_roleplay_set.json")
+
+    mode = "LLM-enhanced" if roleplay_set.llm_powered else "deterministic template"
+    console.print(Panel(
+        f"[bold green]✓ Generated {len(scenarios)} scenario(s)[/bold green] for [cyan]{args.retailer}[/cyan]\n"
+        f"Mode: {mode}\n"
+        f"Personas: {len(roleplay_set.personas)}  |  Hierarchy nodes: {len(roleplay_set.hierarchy.nodes)}\n"
+        f"Written to: [cyan]{out_dir}[/cyan]\n\n"
+        f"Run them: [cyan]python -m callguard_ai run --category retail_sales --retail[/cyan]",
+        title="[bold]Retail Roleplay Studio[/bold]",
+        border_style="green",
+    ))
+
+
+def cmd_studio_list(args: argparse.Namespace) -> None:
+    from .utils.io import load_json
+    from .utils.slug import slugify
+
+    slug = slugify(args.retailer)
+    rs_path = PROJECT_ROOT / "scenarios" / "retail" / slug / "_roleplay_set.json"
+    if not rs_path.exists():
+        console.print(f"[red]No roleplay set found for '{args.retailer}'. Run `studio generate` first.[/red]")
+        return
+    data = load_json(rs_path)
+
+    tree = Table(title=f"{data['retailer']} — Product/Objection Tree", show_lines=False)
+    tree.add_column("Node")
+    tree.add_column("Scenarios", justify="right")
+    for node in data["hierarchy"]["nodes"]:
+        tree.add_row(node["label"], str(len(node["scenario_ids"])))
+    console.print(tree)
+
+    personas = Table(title="Personas")
+    personas.add_column("Persona")
+    personas.add_column("Motivation")
+    personas.add_column("Tone")
+    personas.add_column("Objections")
+    for p in data["personas"]:
+        personas.add_row(p["name"], p["motivation"], p["tone"], ", ".join(p["objections"]))
+    console.print(personas)
+    console.print(f"\n[dim]{data['metadata']['scenario_count']} total scenarios "
+                  f"({'LLM-enhanced' if data['llm_powered'] else 'template-generated'})[/dim]")
+
+
+def cmd_studio(args: argparse.Namespace) -> None:
+    {"generate": cmd_studio_generate, "list": cmd_studio_list}[args.studio_command](args)
+
+
+def cmd_debug(args: argparse.Namespace) -> None:
+    from .analysis.debug_cli import cmd_debug_show
+    {"show": cmd_debug_show}[args.debug_command](args, PROJECT_ROOT, console)
+
+
+def cmd_golden(args: argparse.Namespace) -> None:
+    from .golden.golden_cli import cmd_golden_import, cmd_golden_list, cmd_golden_approve, cmd_golden_reject
+    {
+        "import": cmd_golden_import,
+        "list": cmd_golden_list,
+        "approve": cmd_golden_approve,
+        "reject": cmd_golden_reject,
+    }[args.golden_command](args, PROJECT_ROOT, console)
 
 
 def cmd_setup(_args: argparse.Namespace) -> None:
@@ -287,6 +390,8 @@ def main() -> None:
                             help="Use OpenRouter LLM agents (needs OPENROUTER_API_KEY)")
     agent_mode.add_argument("--foundry", action="store_true",
                             help="Test your Azure AI Foundry agent (needs AZURE_FOUNDRY_* vars)")
+    agent_mode.add_argument("--retail", action="store_true",
+                            help="Use retail sales-associate mock agents for retail_sales scenarios")
 
     # Dynamic scenario flags
     run_p.add_argument("--dynamic", action="store_true",
@@ -305,6 +410,47 @@ def main() -> None:
     rep_g.add_argument("--latest", action="store_true")
     rep_g.add_argument("--run", type=str)
 
+    # ── studio ───────────────────────────────────────────────────────────────
+    studio_p = sub.add_parser("studio", help="Retail Roleplay Studio — playbook → scenarios")
+    studio_sub = studio_p.add_subparsers(dest="studio_command", required=True)
+
+    studio_gen = studio_sub.add_parser("generate", help="Generate scenarios from a retailer playbook")
+    studio_gen.add_argument("--retailer", required=True, help="Retailer name, e.g. 'Ashley HomeStore'")
+    studio_gen.add_argument("--playbook", required=True, help="Path to playbook (.pdf/.txt/.md)")
+    studio_gen.add_argument("--catalog", help="Path to product catalog (.json/.csv)")
+    studio_gen.add_argument("--methodology", help="Path to sales methodology text")
+    studio_gen.add_argument("--objections", help="Path to common-objections text")
+    studio_gen.add_argument("--brand-tone", dest="brand_tone", help="Path to brand tone text")
+    studio_gen.add_argument("--count", type=int, default=100, help="Number of scenarios to generate")
+
+    studio_list = studio_sub.add_parser("list", help="Browse the persona/objection tree for a retailer")
+    studio_list.add_argument("--retailer", required=True)
+
+    # ── debug ────────────────────────────────────────────────────────────────
+    debug_p = sub.add_parser("debug", help="Transcript Intelligence / Prompt Debugger")
+    debug_sub = debug_p.add_subparsers(dest="debug_command", required=True)
+    debug_show = debug_sub.add_parser("show", help="Show the root-cause card for a scenario")
+    debug_show.add_argument("--run", required=True, dest="run_id")
+    debug_show.add_argument("--scenario", required=True, dest="scenario_id")
+
+    # ── golden ───────────────────────────────────────────────────────────────
+    golden_p = sub.add_parser("golden", help="Golden dataset — customer issues → permanent regression tests")
+    golden_sub = golden_p.add_subparsers(dest="golden_command", required=True)
+
+    golden_import = golden_sub.add_parser("import", help="Import a real customer transcript")
+    golden_import.add_argument("--transcript", required=True)
+    golden_import.add_argument("--retailer", required=True)
+
+    golden_list = golden_sub.add_parser("list", help="List golden dataset entries")
+    golden_list.add_argument("--status", choices=["pending", "approved", "rejected", "verified"])
+
+    golden_approve = golden_sub.add_parser("approve", help="Approve a pending scenario into the golden dataset")
+    golden_approve.add_argument("scenario_id")
+
+    golden_reject = golden_sub.add_parser("reject", help="Reject a pending scenario")
+    golden_reject.add_argument("scenario_id")
+    golden_reject.add_argument("--reason", default="")
+
     # ── other ────────────────────────────────────────────────────────────────
     sub.add_parser("dashboard", help="Launch Streamlit dashboard")
     sub.add_parser("list", help="List static scenarios")
@@ -322,6 +468,8 @@ def main() -> None:
         args.llm = False
     if not hasattr(args, "foundry"):
         args.foundry = False
+    if not hasattr(args, "retail"):
+        args.retail = False
 
     {
         "run": cmd_run,
@@ -329,6 +477,9 @@ def main() -> None:
         "dashboard": cmd_dashboard,
         "list": cmd_list,
         "setup": cmd_setup,
+        "studio": cmd_studio,
+        "debug": cmd_debug,
+        "golden": cmd_golden,
     }[args.command](args)
 
 
