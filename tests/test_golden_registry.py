@@ -34,7 +34,7 @@ def project(tmp_path: Path) -> Path:
 
 
 def test_import_drafts_a_scenario_with_detected_failure(project: Path):
-    scenario, root_cause, issue_id = import_customer_transcript(
+    scenario, root_cause, issue_id, resolved_retailer = import_customer_transcript(
         project / "transcript.json", "Test Retailer", scenarios_dir=project / "scenarios",
     )
     assert issue_id == "CS-TEST-1"
@@ -46,11 +46,11 @@ def test_import_drafts_a_scenario_with_detected_failure(project: Path):
 
 
 def test_full_workflow_pending_to_approved_to_autopickup(project: Path):
-    scenario, root_cause, issue_id = import_customer_transcript(
+    scenario, root_cause, issue_id, resolved_retailer = import_customer_transcript(
         project / "transcript.json", "Test Retailer", scenarios_dir=project / "scenarios",
     )
     registry = GoldenRegistry(project)
-    registry.add_pending(scenario, "Test Retailer", issue_id, root_cause)
+    registry.add_pending(scenario, resolved_retailer, issue_id, root_cause)
 
     pending = registry.list(status="pending")
     assert len(pending) == 1
@@ -70,11 +70,11 @@ def test_full_workflow_pending_to_approved_to_autopickup(project: Path):
 
 
 def test_reject_does_not_promote_to_scenarios_dir(project: Path):
-    scenario, root_cause, issue_id = import_customer_transcript(
+    scenario, root_cause, issue_id, resolved_retailer = import_customer_transcript(
         project / "transcript.json", "Test Retailer", scenarios_dir=project / "scenarios",
     )
     registry = GoldenRegistry(project)
-    registry.add_pending(scenario, "Test Retailer", issue_id, root_cause)
+    registry.add_pending(scenario, resolved_retailer, issue_id, root_cause)
     registry.reject(scenario.scenario_id, reason="not representative")
 
     assert registry.get(scenario.scenario_id)["status"] == "rejected"
@@ -83,11 +83,11 @@ def test_reject_does_not_promote_to_scenarios_dir(project: Path):
 
 
 def test_mark_verified_transitions_and_regresses(project: Path):
-    scenario, root_cause, issue_id = import_customer_transcript(
+    scenario, root_cause, issue_id, resolved_retailer = import_customer_transcript(
         project / "transcript.json", "Test Retailer", scenarios_dir=project / "scenarios",
     )
     registry = GoldenRegistry(project)
-    registry.add_pending(scenario, "Test Retailer", issue_id, root_cause)
+    registry.add_pending(scenario, resolved_retailer, issue_id, root_cause)
     registry.approve(scenario.scenario_id)
 
     assert scenario.scenario_id in registry.approved_scenario_ids()
@@ -99,3 +99,33 @@ def test_mark_verified_transitions_and_regresses(project: Path):
     entry = registry.get(scenario.scenario_id)
     assert entry["status"] == "approved"  # demoted back — still enforced, flagged as regressed
     assert entry["last_run_passed"] is False
+
+
+def test_transcript_embedded_retailer_overrides_caller_arg(project: Path):
+    """The transcript's own "retailer" field ("Test Retailer") must win over whatever the
+    caller/CLI passed in, and the resolved value must be what's returned — otherwise the
+    registry's retailer disagrees with the scenario's own scenario_id/tags and approve()
+    promotes the file into the wrong retailer directory (regression: this actually happened
+    during verification — two copies of the same scenario_id ended up in two different
+    scenarios/golden/<retailer>/ dirs and both ran)."""
+    scenario, _root_cause, _issue_id, resolved_retailer = import_customer_transcript(
+        project / "transcript.json", "Totally Different Retailer Name", scenarios_dir=project / "scenarios",
+    )
+    assert resolved_retailer == "Test Retailer"
+    assert "TEST_R" in scenario.scenario_id  # built from the resolved retailer, not the caller's arg
+
+
+def test_add_pending_refuses_to_clobber_an_approved_entry(project: Path):
+    scenario, root_cause, issue_id, resolved_retailer = import_customer_transcript(
+        project / "transcript.json", "Test Retailer", scenarios_dir=project / "scenarios",
+    )
+    registry = GoldenRegistry(project)
+    registry.add_pending(scenario, resolved_retailer, issue_id, root_cause)
+    registry.approve(scenario.scenario_id)
+
+    # Re-importing the same transcript (same scenario_id) must not silently reset an
+    # already-approved entry back to pending while its promoted file keeps running.
+    with pytest.raises(ValueError):
+        registry.add_pending(scenario, resolved_retailer, issue_id, root_cause)
+
+    assert registry.get(scenario.scenario_id)["status"] == "approved"

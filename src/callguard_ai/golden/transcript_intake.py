@@ -63,9 +63,15 @@ def import_customer_transcript(
     path: Path | str,
     retailer: str,
     scenarios_dir: Path | None = None,
-) -> tuple[Scenario, RootCauseAnalysis, str]:
+) -> tuple[Scenario, RootCauseAnalysis, str, str]:
     """
-    Returns (draft_scenario, root_cause_analysis, customer_issue_id).
+    Returns (draft_scenario, root_cause_analysis, customer_issue_id, resolved_retailer).
+
+    resolved_retailer is what actually got baked into the scenario (the transcript's own
+    "retailer" field wins over the CLI/caller-supplied one, if present) — callers must use
+    this value for registry bookkeeping, not the one they passed in, or the registry's
+    retailer disagrees with the scenario's own tags/scenario_id and `approve()` promotes
+    the file to the wrong retailer directory.
     """
     path = Path(path)
     if path.suffix.lower() == ".json":
@@ -145,4 +151,4 @@ def import_customer_transcript(
     root_cause = analyze_transcript(
         draft_scenario, result, evaluation, run_id="golden-import", scenarios_dir=scenarios_dir,
     )
-    return draft_scenario, root_cause, customer_issue_id
+    return draft_scenario, root_cause, customer_issue_id, retailer

@@ -49,12 +49,21 @@ class GoldenRegistry:
         customer_issue_id: str,
         root_cause: RootCauseAnalysis,
     ) -> None:
+        data = self._load()
+        existing = data["entries"].get(scenario.scenario_id)
+        if existing and existing["status"] in ("approved", "verified"):
+            raise ValueError(
+                f"'{scenario.scenario_id}' is already {existing['status']} in the golden "
+                f"dataset — re-importing would silently reset it to pending while its "
+                f"promoted copy at {existing.get('scenario_path')} keeps running. "
+                f"Reject it first (golden reject) if you really want to replace it."
+            )
+
         ensure_dir(self.pending_dir)
         pending_path = self.pending_dir / f"{scenario.scenario_id}.yaml"
         with open(pending_path, "w", encoding="utf-8") as f:
             yaml.safe_dump(scenario.model_dump(), f, sort_keys=False, allow_unicode=True)
 
-        data = self._load()
         data["entries"][scenario.scenario_id] = {
             "scenario_id": scenario.scenario_id,
             "retailer": retailer,

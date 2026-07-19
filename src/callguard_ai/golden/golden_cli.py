@@ -12,10 +12,20 @@ from .transcript_intake import import_customer_transcript
 
 def cmd_golden_import(args: argparse.Namespace, project_root: Path, console: Console) -> None:
     registry = GoldenRegistry(project_root)
-    scenario, root_cause, issue_id = import_customer_transcript(
+    scenario, root_cause, issue_id, resolved_retailer = import_customer_transcript(
         args.transcript, args.retailer, scenarios_dir=project_root / "scenarios",
     )
-    registry.add_pending(scenario, args.retailer, issue_id, root_cause)
+    if resolved_retailer != args.retailer:
+        console.print(
+            f"[yellow]Note: transcript specifies retailer '{resolved_retailer}', "
+            f"using that instead of '--retailer {args.retailer}'.[/yellow]"
+        )
+
+    try:
+        registry.add_pending(scenario, resolved_retailer, issue_id, root_cause)
+    except ValueError as e:
+        console.print(f"[red]{e}[/red]")
+        return
 
     console.print(f"[green]✓ Imported customer issue {issue_id}[/green] as pending scenario "
                   f"[cyan]{scenario.scenario_id}[/cyan]")
