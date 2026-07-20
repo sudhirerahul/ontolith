@@ -3,11 +3,11 @@ Tests for the evaluation engine and taxonomy classifier.
 """
 import pytest
 from pathlib import Path
-from callguard_ai.models.scenario import Scenario, Expected, PassCriteria, Thresholds, ConversationStep
-from callguard_ai.models.run_result import AgentRunResult, RunMetadata, TurnRecord, ToolEvent
-from callguard_ai.evaluators.engine import evaluate
-from callguard_ai.evaluators.taxonomy import classify_failures, TAXONOMY
-from callguard_ai.utils.io import load_all_scenarios_raw
+from ontolith.models.scenario import Scenario, Expected, PassCriteria, Thresholds, ConversationStep
+from ontolith.models.run_result import AgentRunResult, RunMetadata, TurnRecord, ToolEvent
+from ontolith.evaluators.engine import evaluate
+from ontolith.evaluators.taxonomy import classify_failures, TAXONOMY
+from ontolith.utils.io import load_all_scenarios_raw
 
 PROJECT_ROOT = Path(__file__).parent.parent
 

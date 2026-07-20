@@ -1,2 +1,0 @@
-[console_scripts]
-callguard = callguard_ai.__main__:main

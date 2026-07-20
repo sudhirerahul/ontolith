@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-CallGuard AI — a pre-deployment validation gate for Voice AI agents. It runs an agent through adversarial test scenarios, compares it against a baseline, scores every response (LLM judge + deterministic trip-wires), and issues a **PASS / WARN / BLOCK** release verdict.
+Ontolith — a pre-deployment validation gate for Voice AI agents. It runs an agent through adversarial test scenarios, compares it against a baseline, scores every response (LLM judge + deterministic trip-wires), and issues a **PASS / WARN / BLOCK** release verdict.
 
 ## Setup
 
@@ -19,71 +19,71 @@ No API keys are required for local development — the default mode uses mock ag
 
 ## Commands
 
-Run via the installed `callguard` console script or `python -m callguard_ai` (needs `PYTHONPATH=src` if not installed with `pip install -e .`).
+Run via the installed `ontolith` console script or `python -m ontolith` (needs `PYTHONPATH=src` if not installed with `pip install -e .`).
 
 ```bash
 # Full run, all static scenarios, no API keys needed (mock agents)
-python -m callguard_ai run --all
+python -m ontolith run --all
 
 # Single scenario / one category
-python -m callguard_ai run --scenario SEC_001
-python -m callguard_ai run --category security
+python -m ontolith run --scenario SEC_001
+python -m ontolith run --category security
 
 # With voice perturbations (text-level ASR-error simulation)
-python -m callguard_ai run --all --perturbations
+python -m ontolith run --all --perturbations
 
 # LLM-backed agents (needs OPENROUTER_API_KEY) instead of mocks
-python -m callguard_ai run --all --llm
+python -m ontolith run --all --llm
 
 # Test a real Azure AI Foundry deployment as the candidate
 # (needs AZURE_OPENAI_ENDPOINT/AZURE_FOUNDRY_PROJECT_ENDPOINT, AZURE_FOUNDRY_KEY, AZURE_FOUNDRY_MODEL)
-python -m callguard_ai run --all --foundry
+python -m ontolith run --all --foundry
 
 # Add fresh LLM-generated adversarial scenarios each run (needs OPENROUTER_API_KEY)
-python -m callguard_ai run --all --dynamic
-python -m callguard_ai run --all --dynamic-only          # fastest demo: 1 dynamic case/category, no static
-python -m callguard_ai run --all --dynamic --dynamic-count 3 --dynamic-categories security compliance
+python -m ontolith run --all --dynamic
+python -m ontolith run --all --dynamic-only          # fastest demo: 1 dynamic case/category, no static
+python -m ontolith run --all --dynamic --dynamic-count 3 --dynamic-categories security compliance
 
 # Regenerate the HTML report for a past run
-python -m callguard_ai report --latest
-python -m callguard_ai report --run <run_id>
+python -m ontolith report --latest
+python -m ontolith report --run <run_id>
 
 # Interactive dashboard
-python -m callguard_ai dashboard
+python -m ontolith dashboard
 # or directly:
-streamlit run src/callguard_ai/reporting/streamlit_app.py
+streamlit run src/ontolith/reporting/streamlit_app.py
 
 # List all static scenarios
-python -m callguard_ai list
+python -m ontolith list
 
 # Print setup instructions (OpenRouter + Azure Foundry key acquisition)
-python -m callguard_ai setup
+python -m ontolith setup
 ```
 
 ### Retail extensions
 
 ```bash
 # Retail Roleplay Studio — turn a retailer playbook into scenarios
-python -m callguard_ai studio generate --retailer "Ashley HomeStore" \
+python -m ontolith studio generate --retailer "Ashley HomeStore" \
   --playbook samples/retail/ashley_homestore_playbook.txt \
   --catalog samples/retail/catalog.json \
   --methodology samples/retail/methodology.txt \
   --objections samples/retail/objections.txt \
   --brand-tone samples/retail/brand_tone.txt \
   --count 100
-python -m callguard_ai studio list --retailer "Ashley HomeStore"
+python -m ontolith studio list --retailer "Ashley HomeStore"
 
 # Run the generated scenarios against the retail sales-associate mock agents
-python -m callguard_ai run --category retail_sales --retail
+python -m ontolith run --category retail_sales --retail
 
 # Prompt Debugger — root-cause card for any failed/low-scoring scenario in a run
-python -m callguard_ai debug show --run <run_id> --scenario <scenario_id>
+python -m ontolith debug show --run <run_id> --scenario <scenario_id>
 
 # Golden dataset — real customer transcript → reviewed → permanent regression test
-python -m callguard_ai golden import --transcript samples/retail/sample_customer_transcript.json --retailer "Ashley HomeStore"
-python -m callguard_ai golden list --status pending
-python -m callguard_ai golden approve <scenario_id>
-python -m callguard_ai golden reject <scenario_id> --reason "..."
+python -m ontolith golden import --transcript samples/retail/sample_customer_transcript.json --retailer "Ashley HomeStore"
+python -m ontolith golden list --status pending
+python -m ontolith golden approve <scenario_id>
+python -m ontolith golden reject <scenario_id> --reason "..."
 ```
 
 ### Tests
@@ -94,7 +94,7 @@ python -m pytest tests/test_evaluators.py -v          # single file
 python -m pytest tests/test_evaluators.py::test_name -v   # single test
 ```
 
-`tests/conftest.py` inserts `src/` onto `sys.path`, so tests import `callguard_ai` without needing the package installed.
+`tests/conftest.py` inserts `src/` onto `sys.path`, so tests import `ontolith` without needing the package installed.
 
 ## Architecture
 

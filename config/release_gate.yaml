@@ -1,4 +1,4 @@
-# CallGuard AI - Release Gate Rules
+# Ontolith - Release Gate Rules
 # These rules are evaluated in order. First match wins per rule type.
 
 verdict_rules:

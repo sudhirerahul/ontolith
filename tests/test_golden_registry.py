@@ -7,9 +7,9 @@ from pathlib import Path
 
 import pytest
 
-from callguard_ai.golden.registry import GoldenRegistry
-from callguard_ai.golden.transcript_intake import import_customer_transcript
-from callguard_ai.utils.io import load_all_scenarios_raw
+from ontolith.golden.registry import GoldenRegistry
+from ontolith.golden.transcript_intake import import_customer_transcript
+from ontolith.utils.io import load_all_scenarios_raw
 
 TRANSCRIPT = {
     "customer_issue_id": "CS-TEST-1",

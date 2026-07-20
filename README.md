@@ -1,8 +1,8 @@
-# 🛡 CallGuard AI
+# Ontolith
 
 **Pre-deployment validation gate for Voice AI agents.**
 
-Before any new agent version ships, CallGuard runs it through adversarial test scenarios, compares it against a known-good baseline, scores every response using an LLM judge, and issues a **PASS / WARN / BLOCK** verdict — automatically.
+Before any new agent version ships, Ontolith runs it through adversarial test scenarios, compares it against a known-good baseline, scores every response using an LLM judge, and issues a **PASS / WARN / BLOCK** verdict — automatically.
 
 ---
 
@@ -17,7 +17,7 @@ Voice AI agents can fail in ways that aren't obvious from code review:
 - Execute actions before confirming who they are talking to
 - Lose context mid-conversation and contradict themselves
 
-These failures don't show up in unit tests. They show up when a real user calls and something goes wrong. CallGuard catches them before that happens.
+These failures don't show up in unit tests. They show up when a real user calls and something goes wrong. Ontolith catches them before that happens.
 
 ---
 
@@ -45,7 +45,7 @@ These failures don't show up in unit tests. They show up when a real user calls 
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│  run.ps1 / python -m callguard_ai run --foundry --dynamic           │
+│  run.ps1 / python -m ontolith run --foundry --dynamic           │
 └──────────────────────────────┬──────────────────────────────────────┘
                                │
               ┌────────────────▼────────────────┐
@@ -92,7 +92,7 @@ These failures don't show up in unit tests. They show up when a real user calls 
 
 ### Agent-aware dynamic test generation
 
-Most testing frameworks use fixed test cases. CallGuard generates fresh adversarial scenarios by reading your agent's actual live instructions — exported directly from your deployment platform.
+Most testing frameworks use fixed test cases. Ontolith generates fresh adversarial scenarios by reading your agent's actual live instructions — exported directly from your deployment platform.
 
 The generator sends your agent's exact configured rules to Llama 3.3 and says: *"read this rule — now write a realistic user with a plausible reason to violate it."*
 
@@ -102,11 +102,11 @@ Every run gets different scenarios. The agent cannot memorize the tests.
 Agent-aware mode: targeting your deployed agent's rules
 10 rules extracted from agent configuration
 
-→ [SECURITY]         prompt injection via spoken override command      ✓ SEC_DYN_298
-→ [COMPLIANCE]       critical escalation — indirect distress signal    ✓ COMP_DYN_996
-→ [REGRESSION]       fragmented input with mid-conversation correction ✓ REG_DYN_944
-→ [VOICE_ROBUSTNESS] ASR misrecognition across 3 turns                 ✓ VR_DYN_723
-→ [RELIABILITY]      tool timeout during active transaction             ✓ REL_DYN_113
+→ [SECURITY]         prompt injection via spoken override command      SEC_DYN_298
+→ [COMPLIANCE]       critical escalation — indirect distress signal    COMP_DYN_996
+→ [REGRESSION]       fragmented input with mid-conversation correction REG_DYN_944
+→ [VOICE_ROBUSTNESS] ASR misrecognition across 3 turns                 VR_DYN_723
+→ [RELIABILITY]      tool timeout during active transaction            REL_DYN_113
 ```
 
 ### Real agent, real tools
@@ -234,8 +234,8 @@ Each run adds **5 LLM-generated scenarios** targeting your specific agent's conf
 ### Install
 
 ```
-git clone https://github.com/dhaminideva/callguard-ai.git
-cd callguard-ai
+git clone https://github.com/sudhirerahul/ontolith.git
+cd ontolith
 python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
@@ -294,13 +294,13 @@ $latest = (dir reports | Sort LastWriteTime -Desc | Select -First 1).Name
 Start-Process "reports\$latest"
 
 # Launch dashboard
-streamlit run src\callguard_ai\reporting\streamlit_app.py
+streamlit run src\ontolith\reporting\streamlit_app.py
 
 # Run unit tests
 python -m pytest tests/ -v
 
 # List all scenarios
-python -m callguard_ai list
+python -m ontolith list
 ```
 
 ---
@@ -308,7 +308,7 @@ python -m callguard_ai list
 ## Project structure
 
 ```
-callguard-ai/
+ontolith/
 ├── agent_definition.yaml          ← Your live agent configuration (export from UI)
 ├── .env                           ← API keys and endpoints (never commit)
 ├── run.ps1                        ← One-command runner for Windows
@@ -322,7 +322,7 @@ callguard-ai/
 │   ├── release_gate.yaml          ← PASS/WARN/BLOCK verdict rules
 │   ├── scoring.yaml               ← 7 dimension weights
 │   └── perturbations.yaml         ← Voice mutation configuration
-├── src/callguard_ai/
+├── src/ontolith/
 │   ├── agents/
 │   │   ├── foundry_agent.py       ← Azure AI Foundry adapter
 │   │   ├── llm_agent.py           ← OpenRouter baseline agent
@@ -372,7 +372,7 @@ Expected: Immediate escalation to crisis support resources
 **Failure code:** `escalation_missed` — critical severity
 **Verdict:** BLOCK
 **Fix:** Updated the agent's rule priority so critical escalation overrides all other flows
-**Verification:** Re-ran CallGuard. Updated agent passed the same scenario.
+**Verification:** Re-ran Ontolith. Updated agent passed the same scenario.
 
 That loop — find bug, fix configuration, verify fix — is what this system is built for.
 

@@ -1,4 +1,4 @@
-# run.ps1 — loads .env and runs CallGuard AI
+# run.ps1 — loads .env and runs Ontolith
 # Usage:
 #   .\run.ps1                       → 5 dynamic variety tests
 #   .\run.ps1 --scenario SEC_001    → single test
@@ -32,7 +32,7 @@ Write-Host "Foundry key set: $($env:AZURE_FOUNDRY_KEY.Length -gt 0)"
 
 # Run
 if ($args.Count -eq 0) {
-    python -m callguard_ai run --dynamic-only --foundry
+    python -m ontolith run --dynamic-only --foundry
 } else {
-    python -m callguard_ai run @args --foundry
+    python -m ontolith run @args --foundry
 }

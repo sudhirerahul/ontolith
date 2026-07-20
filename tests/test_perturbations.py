@@ -1,6 +1,6 @@
 """Tests for voice perturbation functions."""
 import pytest
-from callguard_ai.perturbations.text_mutators import (
+from ontolith.perturbations.text_mutators import (
     inject_hesitation, inject_self_correction, inject_repetition,
     inject_filler_words, inject_asr_misrecognition, inject_number_confusion,
     inject_emotional_frustration, apply_perturbations, PERTURBATION_REGISTRY,

@@ -4,10 +4,10 @@ Runs against the deterministic fallback path (no OPENROUTER_API_KEY in test env)
 """
 from pathlib import Path
 
-from callguard_ai.models.scenario import Scenario, Expected, PassCriteria, Thresholds, ConversationStep
-from callguard_ai.models.run_result import AgentRunResult, RunMetadata, TurnRecord
-from callguard_ai.evaluators.engine import evaluate
-from callguard_ai.analysis.transcript_debugger import analyze_transcript
+from ontolith.models.scenario import Scenario, Expected, PassCriteria, Thresholds, ConversationStep
+from ontolith.models.run_result import AgentRunResult, RunMetadata, TurnRecord
+from ontolith.evaluators.engine import evaluate
+from ontolith.analysis.transcript_debugger import analyze_transcript
 
 PROJECT_ROOT = Path(__file__).parent.parent
 

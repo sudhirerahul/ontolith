@@ -1,0 +1,2 @@
+[console_scripts]
+ontolith = ontolith.__main__:main

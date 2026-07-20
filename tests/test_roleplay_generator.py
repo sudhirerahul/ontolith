@@ -2,8 +2,8 @@
 Tests for the Retail Roleplay Studio generator (playbook/roleplay_generator.py).
 Runs entirely against the deterministic template path (no OPENROUTER_API_KEY in test env).
 """
-from callguard_ai.playbook.roleplay_generator import RoleplayStudio
-from callguard_ai.playbook.parsers import extract_headings
+from ontolith.playbook.roleplay_generator import RoleplayStudio
+from ontolith.playbook.parsers import extract_headings
 
 PLAYBOOK_TEXT = """
 1. MATTRESSES

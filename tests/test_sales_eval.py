@@ -2,10 +2,10 @@
 Tests for the retail sales evaluator (evaluators/sales_eval.py) and the engine's
 retail_sales category branch.
 """
-from callguard_ai.models.scenario import Scenario, Expected, PassCriteria, Thresholds, ConversationStep
-from callguard_ai.models.run_result import AgentRunResult, RunMetadata, TurnRecord
-from callguard_ai.evaluators.sales_eval import evaluate_sales
-from callguard_ai.evaluators.engine import evaluate
+from ontolith.models.scenario import Scenario, Expected, PassCriteria, Thresholds, ConversationStep
+from ontolith.models.run_result import AgentRunResult, RunMetadata, TurnRecord
+from ontolith.evaluators.sales_eval import evaluate_sales
+from ontolith.evaluators.engine import evaluate
 
 
 def make_retail_scenario(objection_tag: str = "financing") -> Scenario:

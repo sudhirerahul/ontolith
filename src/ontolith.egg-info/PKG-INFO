@@ -1,0 +1,11 @@
+Metadata-Version: 2.4
+Name: ontolith
+Version: 0.1.0
+Summary: Production-style release validation gate for Voice AI
+Requires-Python: >=3.11
+Requires-Dist: pydantic>=2.0
+Requires-Dist: pyyaml>=6.0
+Requires-Dist: rich>=13.0
+Requires-Dist: streamlit>=1.28
+Requires-Dist: jinja2>=3.1
+Requires-Dist: pypdf>=4.0
