@@ -23,6 +23,9 @@ OTHER COMMANDS:
   python -m ontolith list
   python -m ontolith report --latest
   python -m ontolith dashboard
+  python -m ontolith chat                    ← live turn-by-turn roleplay against the agent
+  python -m ontolith chat --retail --baseline
+  python -m ontolith chat --foundry           ← chat with your real deployed agent
   python -m ontolith setup         ← prints setup instructions
 """
 from __future__ import annotations
@@ -342,6 +345,11 @@ def cmd_golden(args: argparse.Namespace) -> None:
     }[args.golden_command](args, PROJECT_ROOT, console)
 
 
+def cmd_chat(args: argparse.Namespace) -> None:
+    from .interactive.chat_cli import cmd_chat as _cmd_chat
+    _cmd_chat(args, PROJECT_ROOT, console)
+
+
 def cmd_setup(_args: argparse.Namespace) -> None:
     console.print(Panel(
         "[bold cyan]Ontolith — Setup Guide[/bold cyan]\n\n"
@@ -451,6 +459,19 @@ def main() -> None:
     golden_reject.add_argument("scenario_id")
     golden_reject.add_argument("--reason", default="")
 
+    # ── chat ─────────────────────────────────────────────────────────────────
+    chat_p = sub.add_parser("chat", help="Interactive live roleplay against the agent, turn by turn")
+    chat_p.add_argument("--retail", action="store_true",
+                         help="Chat with the retail sales agent instead of the healthcare agent")
+    chat_p.add_argument("--baseline", action="store_true",
+                         help="Chat with the baseline (good) agent instead of the candidate (flawed) one")
+    chat_p.add_argument("--llm", action="store_true",
+                         help="Use the LLM-backed agent (needs OPENROUTER_API_KEY) — healthcare only")
+    chat_p.add_argument("--foundry", action="store_true",
+                         help="Chat directly with your real Azure AI Foundry deployment")
+    chat_p.add_argument("--retailer", default="Ashley HomeStore",
+                         help="Default retailer name if you save this session as a golden dataset candidate")
+
     # ── other ────────────────────────────────────────────────────────────────
     sub.add_parser("dashboard", help="Launch Streamlit dashboard")
     sub.add_parser("list", help="List static scenarios")
@@ -480,6 +501,7 @@ def main() -> None:
         "studio": cmd_studio,
         "debug": cmd_debug,
         "golden": cmd_golden,
+        "chat": cmd_chat,
     }[args.command](args)
 
 

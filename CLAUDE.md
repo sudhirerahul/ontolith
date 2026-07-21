@@ -56,6 +56,12 @@ streamlit run src/ontolith/reporting/streamlit_app.py
 # List all static scenarios
 python -m ontolith list
 
+# Interactive live roleplay — chat turn by turn against the agent instead of running a scripted YAML scenario
+python -m ontolith chat                    # healthcare candidate (flawed) agent
+python -m ontolith chat --baseline         # healthcare baseline (good) agent
+python -m ontolith chat --retail           # retail sales agent; offers to save the session as a golden dataset candidate on exit
+python -m ontolith chat --foundry          # chat directly with your real Azure AI Foundry deployment
+
 # Print setup instructions (OpenRouter + Azure Foundry key acquisition)
 python -m ontolith setup
 ```
@@ -128,6 +134,8 @@ Pipeline: **Batch Runner → (agents × scenarios) → Evaluation Engine → Rel
    - **Golden dataset** (`golden/`) — `transcript_intake.py` replays a real customer transcript through the same `evaluate()`/`analyze_transcript()` path to draft a permanent regression `Scenario`; `registry.py::GoldenRegistry` tracks pending → approved → verified state in `golden_dataset/registry.json`. Approving moves the YAML into `scenarios/golden/<retailer_slug>/`, so it's automatically included in every future run — `BatchRunner` marks it `verified` once it passes, or demotes it back to `approved` if it regresses.
    - `evaluators/engine.py` branches on `scenario.category == "retail_sales"` to a different dimension set (`evaluators/sales_eval.py`: discovery + objection_resolution, reusing `regression_eval`/`reliability_eval` for the rest) instead of the healthcare-oriented security/compliance evaluators.
    - `dashboard/trends.py` aggregates historical runs into quality trends per sales dimension for the Streamlit dashboard's Retail Quality tab.
+
+8. **Interactive roleplay** (`interactive/chat_cli.py`, `chat` command) — a live turn-by-turn alternative to running a pre-scripted `Scenario`: you type as the customer/caller and any `BaseAgentAdapter` (mock, LLM, or a real Foundry deployment via `--foundry`) responds in real time, reusing the exact `initialize_session` → `send_user_turn` → `get_session_state` threading `scenario_runner.py` uses per turn. For `--retail` sessions, the finished transcript can be handed straight to `golden/transcript_intake.py` on exit, turning a live roleplay into a permanent regression scenario the same way an imported customer transcript would.
 
 ### Key config files (not code, but drive behavior)
 

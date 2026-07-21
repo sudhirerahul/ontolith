@@ -40,6 +40,8 @@ src/ontolith/golden/__init__.py
 src/ontolith/golden/golden_cli.py
 src/ontolith/golden/registry.py
 src/ontolith/golden/transcript_intake.py
+src/ontolith/interactive/__init__.py
+src/ontolith/interactive/chat_cli.py
 src/ontolith/llm/__init__.py
 src/ontolith/llm/client.py
 src/ontolith/models/__init__.py
