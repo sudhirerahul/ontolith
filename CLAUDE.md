@@ -39,6 +39,11 @@ python -m ontolith run --all --llm
 # (needs AZURE_OPENAI_ENDPOINT/AZURE_FOUNDRY_PROJECT_ENDPOINT, AZURE_FOUNDRY_KEY, AZURE_FOUNDRY_MODEL)
 python -m ontolith run --all --foundry
 
+# Test a real ElevenLabs Conversational AI agent as the candidate
+# (needs ELEVENLABS_AGENT_ID; ELEVENLABS_API_KEY only if the agent is private)
+# Also needs the audio bridge: pip install websockets pyttsx3 faster-whisper
+python -m ontolith run --all --elevenlabs
+
 # Add fresh LLM-generated adversarial scenarios each run (needs OPENROUTER_API_KEY)
 python -m ontolith run --all --dynamic
 python -m ontolith run --all --dynamic-only          # fastest demo: 1 dynamic case/category, no static
@@ -112,6 +117,7 @@ Pipeline: **Batch Runner → (agents × scenarios) → Evaluation Engine → Rel
    - Two adapters are built per run: **baseline** (known-good reference) and **candidate** (agent under test) — `agents/adapters.py::BaselineAgentAdapter` / `CandidateAgentAdapter`.
    - Mode selection is env-var driven, not just CLI flags: `USE_LLM_AGENT=true` + `OPENROUTER_API_KEY` switches both adapters from `MockAgentCore` to `LLMAgentCore`. The candidate LLM agent intentionally uses a weakened system prompt (`FLAWED_AGENT_SYSTEM_PROMPT` in `adapters.py`) to simulate a real prompt regression.
    - `--foundry` swaps the candidate for `FoundryAgentAdapter` (`foundry_agent.py`), which calls a real Azure OpenAI/Foundry deployment; baseline stays mock/OpenRouter.
+   - `--elevenlabs` swaps the candidate for `ElevenLabsAgentAdapter` (`elevenlabs_adapter.py`), which drives a real ElevenLabs Conversational AI agent over its WebSocket protocol (a single persistent connection per scenario, since ElevenLabs conversations are stateful and can't be resumed on a fresh socket the way Retell/Vapi call_ids can); baseline stays mock/OpenRouter. Needs `ELEVENLABS_AGENT_ID` (+ `ELEVENLABS_API_KEY` for private agents) and the audio bridge (`audio/tts.py` + `audio/stt.py`) to synthesize/transcribe around the agent's real voice turns. `retell_adapter.py` / `vapi_adapter.py` are the same audio-bridge pattern for those platforms but aren't wired to a CLI flag — import them directly in `_build_agents()` if needed.
    - `mock_agent.py` is deterministic and rule-based (`introduce_flaws=True` for the candidate reproduces known failure modes like PII leaks) — this is what makes the whole pipeline runnable with zero API keys.
 
 3. **Scenario/Batch Runner** (`runner/scenario_runner.py`, `runner/batch_runner.py`) — `BatchRunner.run_all()` loads scenarios, builds the baseline/candidate pair via `_build_agents()`, runs both through every scenario turn-by-turn, and diffs transcripts/tool calls (`utils/diffing.py`) between baseline and candidate.

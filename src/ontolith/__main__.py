@@ -11,6 +11,9 @@ MODES:
   Foundry mode (Azure key + OpenRouter key for judge):
     python -m ontolith run --all --foundry
 
+  ElevenLabs mode (ElevenLabs agent + OpenRouter key for judge):
+    python -m ontolith run --all --elevenlabs
+
   Dynamic scenarios (LLM generates fresh test cases):
     python -m ontolith run --all --dynamic
     python -m ontolith run --all --foundry --dynamic
@@ -65,8 +68,32 @@ def _print_mode_banner(args: argparse.Namespace) -> None:
     openrouter_key = os.environ.get("OPENROUTER_API_KEY", "")
     foundry_endpoint = os.environ.get("AZURE_FOUNDRY_PROJECT_ENDPOINT", "") or os.environ.get("AZURE_OPENAI_ENDPOINT", "") or os.environ.get("AZURE_FOUNDRY_ENDPOINT", "")
     foundry_key = os.environ.get("AZURE_FOUNDRY_KEY", "")
+    elevenlabs_agent_id = os.environ.get("ELEVENLABS_AGENT_ID", "")
 
-    if args.foundry:
+    if args.elevenlabs:
+        if elevenlabs_agent_id:
+            judge = "LLM judge (OpenRouter)" if openrouter_key else "Deterministic fallback"
+            auth_note = "signed URL (private agent)" if os.environ.get("ELEVENLABS_API_KEY") else "public agent, no key"
+            dynamic_note = f"\nDynamic scenarios: [cyan]ON ({args.dynamic_count}/category × {len(args.dynamic_categories or ['all'])} categories)[/cyan]" if args.dynamic else "\nDynamic scenarios: OFF (static YAML only)"
+            console.print(Panel(
+                f"[bold green]ELEVENLABS MODE[/bold green]\n"
+                f"Agent under test: [cyan]{elevenlabs_agent_id}[/cyan] ({auth_note})\n"
+                f"Baseline agent: OpenRouter Llama 3.1 (strong system prompt)\n"
+                f"Evaluator: {judge}"
+                f"{dynamic_note}",
+                title="[bold]Evaluation Mode[/bold]",
+                border_style="green",
+            ))
+        else:
+            console.print(Panel(
+                f"[bold red]WARNING: --elevenlabs flag set but ELEVENLABS_AGENT_ID missing[/bold red]\n\n"
+                f"Create an agent at [cyan]https://elevenlabs.io/app/agents[/cyan], copy its Agent ID, then run:\n"
+                f"[cyan]set ELEVENLABS_AGENT_ID=agent_xxxx[/cyan]\n"
+                f"(add [cyan]ELEVENLABS_API_KEY[/cyan] too if the agent is private)",
+                title="[bold]Setup Required[/bold]",
+                border_style="red",
+            ))
+    elif args.foundry:
         if foundry_endpoint and foundry_key:
             model = os.environ.get("AZURE_FOUNDRY_MODEL", "phi-4-mini")
             judge = "LLM judge (OpenRouter)" if openrouter_key else "Deterministic fallback"
@@ -118,7 +145,8 @@ def _print_mode_banner(args: argparse.Namespace) -> None:
             "Agents: Mock rule-based (no API keys needed)\n"
             "Evaluator: LLM judge with deterministic fallback"
             f"{dynamic_note}\n"
-            "Tip: Add [cyan]--foundry[/cyan] to test your Azure AI Foundry agent",
+            "Tip: Add [cyan]--foundry[/cyan] to test your Azure AI Foundry agent, "
+            "or [cyan]--elevenlabs[/cyan] for an ElevenLabs Conversational AI agent",
             title="[bold]Evaluation Mode[/bold]",
             border_style="blue",
         ))
@@ -142,6 +170,7 @@ def cmd_run(args: argparse.Namespace) -> None:
         enable_perturbations=args.perturbations,
         inject_mock_latency=not args.no_latency,
         use_foundry=args.foundry,
+        use_elevenlabs=args.elevenlabs,
         use_retail=getattr(args, "retail", False),
         dynamic_scenarios=args.dynamic or dynamic_only,
         dynamic_only=dynamic_only,
@@ -369,7 +398,16 @@ def cmd_setup(_args: argparse.Namespace) -> None:
         "[bold]3. Verify setup[/bold]\n"
         "   → [cyan]python -m ontolith run --scenario SEC_001 --foundry[/cyan]\n\n"
         "[bold]4. Full run with dynamic scenarios[/bold]\n"
-        "   → [cyan]python -m ontolith run --all --foundry --dynamic[/cyan]",
+        "   → [cyan]python -m ontolith run --all --foundry --dynamic[/cyan]\n\n"
+        "[bold]5. ElevenLabs Conversational AI (the agent being tested)[/bold]\n"
+        "   → Go to [cyan]https://elevenlabs.io/app/agents[/cyan] and create an agent\n"
+        "   → Copy its Agent ID\n"
+        "   → Run: [cyan]set ELEVENLABS_AGENT_ID=agent_xxxx[/cyan]\n"
+        "   → If the agent is private, also get a key from\n"
+        "     [cyan]https://elevenlabs.io/app/settings/api-keys[/cyan] and run:\n"
+        "       [cyan]set ELEVENLABS_API_KEY=your_key_here[/cyan]\n"
+        "   → Install the audio bridge: [cyan]pip install websockets pyttsx3 faster-whisper[/cyan]\n"
+        "   → Run: [cyan]python -m ontolith run --scenario SEC_001 --elevenlabs[/cyan]",
         title="Setup Instructions",
         border_style="cyan",
     ))
@@ -398,6 +436,8 @@ def main() -> None:
                             help="Use OpenRouter LLM agents (needs OPENROUTER_API_KEY)")
     agent_mode.add_argument("--foundry", action="store_true",
                             help="Test your Azure AI Foundry agent (needs AZURE_FOUNDRY_* vars)")
+    agent_mode.add_argument("--elevenlabs", action="store_true",
+                            help="Test your ElevenLabs Conversational AI agent (needs ELEVENLABS_AGENT_ID)")
     agent_mode.add_argument("--retail", action="store_true",
                             help="Use retail sales-associate mock agents for retail_sales scenarios")
 
@@ -489,6 +529,8 @@ def main() -> None:
         args.llm = False
     if not hasattr(args, "foundry"):
         args.foundry = False
+    if not hasattr(args, "elevenlabs"):
+        args.elevenlabs = False
     if not hasattr(args, "retail"):
         args.retail = False
 

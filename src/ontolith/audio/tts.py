@@ -83,7 +83,41 @@ def _tts_pyttsx3(text: str, out_path: Path) -> Path:
     engine.save_to_file(text, str(out_path))
     engine.runAndWait()
     engine.stop()
+    _ensure_real_wav(out_path)
     return out_path
+
+
+def _ensure_real_wav(path: Path) -> None:
+    """
+    pyttsx3's macOS driver (NSSpeechSynthesizer) writes AIFF-C data into the
+    file regardless of the .wav extension — a real RIFF/WAVE header is
+    required by everything downstream (wave.open, STT engines, ElevenLabs/
+    Retell/Vapi adapters). Detect a mislabeled AIFF file and convert it in
+    place with afconvert (ships with every macOS install).
+    """
+    with open(path, "rb") as f:
+        header = f.read(4)
+    if header == b"RIFF":
+        return
+    if header != b"FORM":
+        raise RuntimeError(f"Unrecognized audio container from pyttsx3: {header!r}")
+
+    import shutil
+    import subprocess
+
+    if not shutil.which("afconvert"):
+        raise RuntimeError(
+            "pyttsx3 produced AIFF audio but afconvert is unavailable to convert it to WAV. "
+            "Install ffmpeg/sox, or use a different TTS engine (coqui/openai)."
+        )
+
+    aiff_path = path.with_suffix(".aiff")
+    path.rename(aiff_path)
+    subprocess.run(
+        ["afconvert", "-f", "WAVE", "-d", "LEI16", str(aiff_path), str(path)],
+        check=True, capture_output=True,
+    )
+    aiff_path.unlink()
 
 
 def _tts_coqui(text: str, out_path: Path) -> Path:

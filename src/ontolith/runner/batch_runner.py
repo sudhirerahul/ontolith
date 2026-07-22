@@ -48,6 +48,7 @@ class BatchRunner:
         enable_perturbations: bool = False,
         inject_mock_latency: bool = True,
         use_foundry: bool = False,
+        use_elevenlabs: bool = False,
         use_retail: bool = False,
         dynamic_scenarios: bool = False,
         dynamic_only: bool = False,
@@ -60,6 +61,7 @@ class BatchRunner:
         self.reports_dir = project_root / "reports"
         self.config_dir = project_root / "config"
         self.use_foundry = use_foundry
+        self.use_elevenlabs = use_elevenlabs
         self.use_retail = use_retail
         self.dynamic_scenarios = dynamic_scenarios
         self.dynamic_only = dynamic_only
@@ -157,6 +159,13 @@ class BatchRunner:
             baseline = BaselineAgentAdapter()
             # Candidate: your actual Azure Foundry deployment
             candidate = FoundryAgentAdapter()
+            return baseline, candidate
+        elif self.use_elevenlabs:
+            from ..agents.elevenlabs_adapter import ElevenLabsAgentAdapter
+            # Baseline: strong-prompt OpenRouter LLM (or mock if no key)
+            baseline = BaselineAgentAdapter()
+            # Candidate: your actual ElevenLabs Conversational AI agent
+            candidate = ElevenLabsAgentAdapter()
             return baseline, candidate
         elif self.use_retail:
             from ..agents.retail_adapters import RetailBaselineAdapter, RetailCandidateAdapter
